@@ -20,7 +20,7 @@ https://chrome.google.com/webstore/detail/mini-bookmarks/lipgpfampommaphglnnnjjo
 
 ## Dev Environment
 
-- node v20.3.1
+- ES2015
 
 ## Contribution
 

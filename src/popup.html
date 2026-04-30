@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Mini Bookmarks</title>
+        <link rel="stylesheet" href="common.css" />
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="header-left">
+                    <button id="open-tab-btn" class="btn">↗</button>
+                </div>
+                <div class="header-title">
+                    <img src="../assets/img/icon_128.png" alt="icon" class="header-icon" />
+                    <span class="header-name">MiniBookmark</span>
+                </div>
+                <div class="header-right">
+                    <span id="total-count">Total: 0</span>
+                    <button id="add-btn" class="btn btn-success">Add +</button>
+                </div>
+            </div>
+            <input
+                type="text"
+                id="search"
+                class="search-input"
+                placeholder="Search..."
+            />
+            <ul id="bookmark-list" class="bookmark-list"></ul>
+        </div>
+        <script src="popup.js"></script>
+    </body>
+</html>
