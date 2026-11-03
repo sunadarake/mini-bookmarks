@@ -1,5 +1,5 @@
 #!/bin/bash
-# build.sh で zip を作り、前回のタグ以降のコミットから RELEASE.md を生成する。
+# build.sh で zip を作り、概要とインストール方法を書いた RELEASE.md を生成する。
 # それを本文にして、GitHub CLI で draft のリリースを作成する（タグは公開時に作られる）。
 set -euo pipefail
 
@@ -23,16 +23,17 @@ fi
 
 ./build.sh
 
-# 前回のタグ以降のコミットを載せる。タグがなければ全コミットを載せる
-PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
-RANGE=${PREV_TAG:+${PREV_TAG}..}HEAD
+cat > RELEASE.md <<NOTES
+# ${TAG}
 
-{
-  echo "# ${TAG}"
-  echo
-  echo "## 変更内容"
-  git log "$RANGE" --no-merges --pretty='- %s'
-} > RELEASE.md
+あとで読む記事を保存し、タイトルで検索できる Chrome 拡張機能です。
+読んだ記事には既読マークが付きます。
+
+## インストール方法
+
+- Chrome ウェブストア: https://chrome.google.com/webstore/detail/mini-bookmarks/lipgpfampommaphglnnnjjojidmkdlkn
+- zip から入れる場合: 添付の zip を展開し、\`chrome://extensions\` でデベロッパーモードを有効にして「パッケージ化されていない拡張機能を読み込む」から展開したフォルダを選ぶ
+NOTES
 
 # ドラフトで作成する。タグは公開時に HEAD のコミットへ作られる
 gh release create "$TAG" "$ZIP" \
