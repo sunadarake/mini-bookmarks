@@ -12,7 +12,8 @@
 ## コマンド
 - セットアップ: `npm install`
 - テスト: `npm test`
-- ビルド（配布用 zip を `dist/` に作成）: `./build.sh`
+- ビルド（テスト実行後、配布用 zip を `dist/` に作成）: `./build.sh`
+- リリース（ビルド後、`RELEASE.md` を生成し GitHub に draft のリリースを作成。`gh` が必要。未コミットの変更があると止まる）: `./publish.sh`
 - 動作確認: `chrome://extensions` でデベロッパーモードを有効にし、このリポジトリを「パッケージ化されていない拡張機能」として読み込む
 - lint・型チェック: 未導入
 
