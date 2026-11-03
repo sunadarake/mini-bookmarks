@@ -21,6 +21,9 @@ fi
 # 未コミットの変更があると、リリースの内容とコミットがずれる
 [ -z "$(git status --porcelain)" ] || { echo "未コミットの変更があります" >&2; exit 1; }
 
+# GitHub は remote にないコミットを --target に指定できない（HTTP 422）
+[ -n "$(git branch -r --contains HEAD)" ] || { echo "HEAD が remote に push されていません。先に push してください" >&2; exit 1; }
+
 ./build.sh
 
 cat > RELEASE.md <<NOTES
