@@ -1,32 +1,56 @@
-# ⭐️ mini bookmarks
-
-![Static Badge](https://img.shields.io/badge/lang-typescript-blue) ![Static Badge](https://img.shields.io/badge/library-react-blue) ![Static Badge](https://img.shields.io/badge/chrome_extension-orange) ![Static Badge](https://img.shields.io/badge/version-1.0.1-red)
-
-
-A Chrome extension for saving and managing articles to read later.
+# mini bookmarks
 
 <img src="./sample_images/bookmark_thumb.png">
 
-## Install
+## 目的
 
-You can use it by installing it from the following URL.
+あとで読む記事を保存して、タイトルで検索できる Chrome 拡張機能。
+通常のブックマークより小さく、読んだかどうかを一覧で確認できるようにした。
 
-https://chrome.google.com/webstore/detail/mini-bookmarks/lipgpfampommaphglnnnjjojidmkdlkn?hl=ja&authuser=0
+Chrome ウェブストアからもインストールできる。
 
-## How to use
+https://chrome.google.com/webstore/detail/mini-bookmarks/lipgpfampommaphglnnnjjojidmkdlkn
+
+## セットアップ
+
+```bash
+git clone <このリポジトリの URL>
+cd mini-bookmarks
+
+# Chrome で chrome://extensions を開き、デベロッパーモードを有効にする
+# 「パッケージ化されていない拡張機能を読み込む」でこのディレクトリを選ぶ
+
+# 配布用 zip を作る場合（dist/ に出力される）
+./build.sh
+```
+
+## 使い方
+
+ツールバーのアイコンを押してポップアップを開く。
 
 <img src="./sample_images/sample.gif">
 
+1. 保存したいページを開いて `Add +` を押す
+2. 検索欄にタイトルの一部を入力して絞り込む
+3. 項目をクリックするとページが開き、既読になる
+4. `✕` で項目を削除する
+5. `↗` で、同じ一覧を新しいタブで開く（タブ画面では追加はできない）
 
-## Dev Environment
+## 仕様
 
-- ES2015
+| 項目 | 内容 |
+|:-|:-|
+| 保存先 | `chrome.storage.local` のキー `MiniBookMark_Items` |
+| 保存する値 | `url`、`hostName`、`title`、`read` |
+| 重複した URL | 古い項目を消して先頭に追加する |
+| 検索 | タイトルの部分一致（大文字小文字を区別しない） |
+| バッジ | 保存件数を表示する |
 
 ## Contribution
 
-If you have any requests, such as adding new features or fixing bugs, please report them through the Issue tracker. Your feedback is greatly appreciated!
+機能の追加や不具合の修正の要望は、Issue で報告してください。
 
-Bug fixes and additions of tests in Pull Requests are highly welcome.
+バグ修正や、テストを追加する Pull Request も歓迎します。
 
 ## License
 
