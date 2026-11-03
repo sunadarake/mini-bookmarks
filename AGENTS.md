@@ -8,14 +8,16 @@
 - フレームワーク: なし（DOM を直接操作する）
 - パッケージ管理: npm（テスト用の devDependencies のみ。拡張機能本体は依存なし）
 - テスト: Vitest（DOM のテストは jsdom）
+- lint: ESLint（推奨ルールのみ。設定は `eslint.config.js`）
 
 ## コマンド
 - セットアップ: `npm install`
 - テスト: `npm test`
+- lint: `npm run lint`
 - ビルド（テスト実行後、配布用 zip を `dist/` に作成）: `./build.sh`
 - リリース（ビルド後、`RELEASE.md` を生成し GitHub に draft のリリースを作成。`gh` が必要。未コミットの変更があると止まる）: `./publish.sh`
 - 動作確認: `chrome://extensions` でデベロッパーモードを有効にし、このリポジトリを「パッケージ化されていない拡張機能」として読み込む
-- lint・型チェック: 未導入
+- 型チェック: 未導入
 
 ## ディレクトリ構成
 - `manifest.json` 拡張機能の定義（バージョンはここが唯一の定義元。`build.sh` がここから zip 名を決める）
