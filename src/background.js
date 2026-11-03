@@ -1,9 +1,7 @@
-const STORAGE_KEY = "MiniBookMark_Items";
+import { storageGet, setBadgeText } from "./lib.js";
 
 async function setBadge() {
-  const data = await chrome.storage.local.get(STORAGE_KEY);
-  const items = data[STORAGE_KEY] || [];
-  chrome.action.setBadgeText({ text: items.length.toString() });
+  setBadgeText(await storageGet());
 }
 
 chrome.runtime.onStartup.addListener(() => {
