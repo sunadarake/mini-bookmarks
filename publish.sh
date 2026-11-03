@@ -1,4 +1,6 @@
 #!/bin/bash
+# build.sh で zip を作り、前回のタグ以降のコミットから RELEASE.md を生成する。
+# それを本文にして、GitHub CLI で draft のリリースを作成する（タグは公開時に作られる）。
 set -euo pipefail
 
 # どこから実行しても同じ結果になるよう、リポジトリのルートに移動する

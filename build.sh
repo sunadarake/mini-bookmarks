@@ -1,4 +1,6 @@
 #!/bin/bash
+# テストを実行してから、配布用の zip を dist/ に作成する。
+# zip には manifest.json、assets/、src/ だけを入れる。
 set -euo pipefail
 
 # どこから実行しても同じ結果になるよう、リポジトリのルートに移動する
