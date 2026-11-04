@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
   "name": "mini bookmarks",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2Fm+H/kMKbyJlJ49vE+/NcT2CuaLKzTIdHzeAzbDZgs5bj+MzKO+oRg2d7SXLe+qjk/XOBX/uIJXpVM9e/U7cmE4rw2KXD7tZLCNZwh41oIU19v6TmajXslpQ42A/R9ZHSrPHzTHeZ1dFEpBUdAuplz84PPx/5OudyQ7ADdYdWM+mBkqzZ50Oi8Xe4w/azxDc4Up3eEiJu5GuV1fDb9bYmaEfQFn1Pk5RaG8MKU4+TGoLVmweKctz15KILK9BZMVgwGhSc8d7mZJuU61NPAlut6D1CDMUZGwk+WOgklA8qr/m64iIKGbzijJQvY83evO6U9CZ69bR3+N5sblDZbv3wIDAQAB",
   "version": "3.0.0",
   "description": "Small, but excellent in searchability, another bookmark.",
   "background": {
