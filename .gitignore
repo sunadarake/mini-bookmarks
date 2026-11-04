@@ -25,3 +25,5 @@
 
 # secrets
 secrets.*.js
+key.pem
+*.pem
