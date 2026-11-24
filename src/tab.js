@@ -28,6 +28,9 @@ function render() {
 }
 
 document.getElementById("search").addEventListener("input", render);
+document
+  .getElementById("menu-btn")
+  .addEventListener("click", () => chrome.runtime.openOptionsPage());
 
 async function init() {
   currentItems = await storageGet();

@@ -23,8 +23,8 @@
 - `manifest.json` 拡張機能の定義（バージョンはここが唯一の定義元。`build.sh` がここから zip 名を決める）
 - `src/lib.js` 共通処理（保存・バッジ・描画と、配列を変換する純粋関数）。`chrome.*` に触れない関数はここに置いてテストする
 - `src/background.js` サービスワーカー。起動・インストール時にバッジの件数を更新する
-- `src/popup.html` / `src/popup.js` ポップアップ。現在のタブの追加、検索、既読化、削除、フルタブ画面を開く
-- `src/tab.html` / `src/tab.js` フルタブ画面。一覧、検索、既読化、削除（追加はできない）
+- `src/popup.html` / `src/popup.js` ポップアップ。現在のタブの追加、検索、既読化、削除、フルタブ画面とオプションを開く
+- `src/tab.html` / `src/tab.js` フルタブ画面。一覧、検索、既読化、削除（追加はできない）とオプションを開く導線
 - `src/options.html` / `src/options.js` オプション画面。JSON エクスポートと、ファイル選択・ドラッグ&ドロップによるインポート（`manifest.json` の `options_ui`）
 - `src/common.css` ポップアップ・フルタブ・オプション共通のスタイル、`src/tab.css` フルタブ専用
 - `assets/img/` アイコン

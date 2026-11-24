@@ -44,6 +44,9 @@ async function addURL() {
 document.getElementById("open-tab-btn").addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("src/tab.html") });
 });
+document
+  .getElementById("menu-btn")
+  .addEventListener("click", () => chrome.runtime.openOptionsPage());
 document.getElementById("add-btn").addEventListener("click", addURL);
 document.getElementById("search").addEventListener("input", render);
 

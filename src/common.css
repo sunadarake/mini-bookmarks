@@ -120,6 +120,11 @@ body {
     color: #fff;
 }
 
+.menu-btn {
+    font-size: 16px;
+    line-height: 1;
+}
+
 .delete-btn {
     background: #dc3545;
     color: #fff;
