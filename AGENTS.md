@@ -12,7 +12,7 @@
 
 ## コマンド
 - セットアップ: `npm install`
-- テスト: `npm test`
+- テスト: `npm test`（成功時は dot レポーターで簡潔に表示し、失敗時は詳細を表示する）
 - lint: `npm run lint`
 - ビルド（テスト実行後、配布用 zip を `dist/` に作成）: `./build.sh`
 - リリース（ビルド後、`RELEASE.md` を生成し GitHub に公開リリースを作成。成功後に以前のリリースとタグを削除。`gh` が必要。未コミットの変更があると止まる）: `./publish.sh`
