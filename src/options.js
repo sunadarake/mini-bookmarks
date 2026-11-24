@@ -14,6 +14,7 @@ const fileInput = document.getElementById("file-input");
 const preview = document.getElementById("preview");
 const saveBtn = document.getElementById("save-btn");
 const confirmDelete = document.getElementById("confirm-delete");
+const version = document.getElementById("version");
 
 let pendingItems = [];
 
@@ -101,6 +102,7 @@ async function initSettings() {
 }
 
 initSettings();
+version.textContent = `バージョン ${chrome.runtime.getManifest().version}`;
 
 dropZone.addEventListener("click", () => fileInput.click());
 dropZone.addEventListener("dragover", (event) => {

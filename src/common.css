@@ -252,3 +252,10 @@ body {
 .hidden {
     display: none;
 }
+
+.version {
+    margin-top: 16px;
+    text-align: center;
+    color: #666;
+    font-size: 12px;
+}

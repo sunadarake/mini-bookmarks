@@ -25,7 +25,7 @@
 - `src/background.js` サービスワーカー。起動・インストール時にバッジの件数を更新する
 - `src/popup.html` / `src/popup.js` ポップアップ。現在のタブの追加、検索、既読化、削除、フルタブ画面とオプションを開く
 - `src/tab.html` / `src/tab.js` フルタブ画面。一覧、検索、既読化、削除（追加はできない）とオプションを開く導線
-- `src/options.html` / `src/options.js` オプション画面。JSON エクスポートと、ファイル選択・ドラッグ&ドロップによるインポート、削除前確認の設定（`manifest.json` の `options_ui`）
+- `src/options.html` / `src/options.js` オプション画面。JSON エクスポートと、ファイル選択・ドラッグ&ドロップによるインポート、削除前確認の設定、現在のバージョンの表示（`manifest.json` の `options_ui`）
 - `src/common.css` ポップアップ・フルタブ・オプション共通のスタイル、`src/tab.css` フルタブ専用
 - `assets/img/` アイコン
 - `tests/` Vitest のテスト（`lib.js` が対象）
