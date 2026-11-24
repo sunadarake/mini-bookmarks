@@ -4,6 +4,7 @@ import {
   setBadgeText,
   addItem,
   removeItem,
+  moveItem,
   markRead,
   toggleFavorite,
   renderItems,
@@ -26,6 +27,11 @@ const handlers = {
   },
   onToggleFavorite: (url) => {
     currentItems = toggleFavorite(currentItems, url);
+    storageSet(currentItems);
+    render();
+  },
+  onReorder: (fromUrl, toUrl) => {
+    currentItems = moveItem(currentItems, fromUrl, toUrl);
     storageSet(currentItems);
     render();
   },

@@ -79,6 +79,18 @@ body {
     background: #f5f5f5;
 }
 
+.bookmark-item[draggable="true"] {
+    cursor: grab;
+}
+
+.bookmark-item.dragging {
+    opacity: 0.5;
+}
+
+.bookmark-item.drag-over {
+    background: #e6f0ff;
+}
+
 .bookmark-link {
     text-decoration: none;
     color: #333;

@@ -7,6 +7,7 @@ import {
   filterItems,
   markRead,
   mergeItems,
+  moveItem,
   toggleFavorite,
   parseHost,
   removeItem,
@@ -111,6 +112,40 @@ describe("toggleFavorite", () => {
     const items = [{ url: "a", title: "A" }];
     expect(toggleFavorite(items, "x")).toEqual(items);
     expect(items[0].favorite).toBeUndefined();
+  });
+});
+
+describe("moveItem", () => {
+  const items = [{ url: "a" }, { url: "b" }, { url: "c" }];
+
+  it("前の項目を後ろの位置へ移す", () => {
+    expect(moveItem(items, "a", "c").map((it) => it.url)).toEqual([
+      "b",
+      "c",
+      "a",
+    ]);
+  });
+
+  it("後ろの項目を前の位置へ移す", () => {
+    expect(moveItem(items, "c", "a").map((it) => it.url)).toEqual([
+      "c",
+      "a",
+      "b",
+    ]);
+  });
+
+  it("存在しない URL を渡しても変化しない", () => {
+    expect(moveItem(items, "x", "a")).toEqual(items);
+    expect(moveItem(items, "a", "x")).toEqual(items);
+  });
+
+  it("同じ URL なら変化しない", () => {
+    expect(moveItem(items, "b", "b")).toEqual(items);
+  });
+
+  it("元の配列を変更しない", () => {
+    moveItem(items, "a", "c");
+    expect(items.map((it) => it.url)).toEqual(["a", "b", "c"]);
   });
 });
 

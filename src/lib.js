@@ -36,6 +36,18 @@ export function removeItem(items, url) {
   return items.filter((it) => it.url !== url);
 }
 
+export function moveItem(items, fromUrl, toUrl) {
+  const fromIndex = items.findIndex((it) => it.url === fromUrl);
+  const toIndex = items.findIndex((it) => it.url === toUrl);
+  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+    return [...items];
+  }
+  const result = [...items];
+  const [moved] = result.splice(fromIndex, 1);
+  result.splice(toIndex, 0, moved);
+  return result;
+}
+
 export function markRead(items, url) {
   return items.map((it) => (it.url === url ? { ...it, read: true } : it));
 }
@@ -76,16 +88,57 @@ export function mergeItems(existing, imported) {
 export function renderItems(
   items,
   keyword,
-  { onOpen, onDelete, onToggleFavorite },
+  { onOpen, onDelete, onToggleFavorite, onReorder },
   favoritesOnly = false,
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
 
+  const canReorder = !keyword && !favoritesOnly;
+  let draggedUrl = null;
+  let draggedRecently = false;
+
   filterItems(items, keyword, favoritesOnly).forEach(
     ({ url, hostName, title, read, favorite }) => {
       const li = document.createElement("li");
       li.className = "bookmark-item";
+
+      if (canReorder) {
+        li.draggable = true;
+        li.addEventListener("dragstart", (e) => {
+          draggedUrl = url;
+          draggedRecently = true;
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", url);
+          li.classList.add("dragging");
+        });
+        li.addEventListener("dragover", (e) => {
+          if (draggedUrl === null || draggedUrl === url) return;
+          e.preventDefault();
+          li.classList.add("drag-over");
+        });
+        li.addEventListener("dragleave", () => {
+          li.classList.remove("drag-over");
+        });
+        li.addEventListener("drop", (e) => {
+          e.preventDefault();
+          li.classList.remove("drag-over");
+          if (draggedUrl !== null && draggedUrl !== url) {
+            onReorder(draggedUrl, url);
+          }
+          draggedUrl = null;
+        });
+        li.addEventListener("dragend", () => {
+          li.classList.remove("dragging");
+          draggedUrl = null;
+          list
+            .querySelectorAll(".drag-over")
+            .forEach((el) => el.classList.remove("drag-over"));
+          setTimeout(() => {
+            draggedRecently = false;
+          }, 0);
+        });
+      }
 
       const readMark = document.createElement("span");
       readMark.className = "read-mark";
@@ -96,7 +149,15 @@ export function renderItems(
       a.target = "_blank";
       a.rel = "noopener noreferrer";
       a.className = "bookmark-link";
-      a.addEventListener("click", () => onOpen(url));
+      a.addEventListener("click", (e) => {
+        // ドラッグ直後のクリックで既読・新規タブが走るのを防ぐ
+        if (draggedRecently) {
+          e.preventDefault();
+          draggedRecently = false;
+          return;
+        }
+        onOpen(url);
+      });
 
       const img = document.createElement("img");
       img.src = `https://www.google.com/s2/favicons?domain=${hostName}`;
