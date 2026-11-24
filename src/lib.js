@@ -1,4 +1,5 @@
 export const STORAGE_KEY = "MiniBookMark_Items";
+export const SESSION_KEY = "MiniBookMark_Session";
 
 export async function storageGet() {
   const data = await chrome.storage.local.get(STORAGE_KEY);
@@ -7,6 +8,15 @@ export async function storageGet() {
 
 export function storageSet(items) {
   chrome.storage.local.set({ [STORAGE_KEY]: items });
+}
+
+export async function sessionGet() {
+  const data = await chrome.storage.session.get(SESSION_KEY);
+  return data[SESSION_KEY] || { openedUrls: [], lastOpenedUrl: "" };
+}
+
+export function sessionSet(session) {
+  chrome.storage.session.set({ [SESSION_KEY]: session });
 }
 
 export function setBadgeText(items) {
@@ -26,7 +36,7 @@ export function filterItems(items, keyword, favoritesOnly = false) {
   });
 }
 
-// 同じ URL は古い項目を消して先頭に入れ直す（既読状態は未読に戻る）
+// 同じ URL は古い項目を消して先頭に入れ直す
 export function addItem(items, { url, title }) {
   const filtered = items.filter((it) => it.url !== url);
   return [{ url, hostName: parseHost(url), title }, ...filtered];
@@ -48,8 +58,11 @@ export function moveItem(items, fromUrl, toUrl) {
   return result;
 }
 
-export function markRead(items, url) {
-  return items.map((it) => (it.url === url ? { ...it, read: true } : it));
+export function markOpened(session, url) {
+  const openedUrls = session.openedUrls.includes(url)
+    ? session.openedUrls
+    : [...session.openedUrls, url];
+  return { openedUrls, lastOpenedUrl: url };
 }
 
 export function toggleFavorite(items, url) {
@@ -90,6 +103,7 @@ export function renderItems(
   keyword,
   { onOpen, onDelete, onToggleFavorite, onReorder },
   favoritesOnly = false,
+  session = { openedUrls: [], lastOpenedUrl: "" },
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
@@ -99,9 +113,12 @@ export function renderItems(
   let draggedRecently = false;
 
   filterItems(items, keyword, favoritesOnly).forEach(
-    ({ url, hostName, title, read, favorite }) => {
+    ({ url, hostName, title, favorite }) => {
       const li = document.createElement("li");
       li.className = "bookmark-item";
+      if (session.lastOpenedUrl === url) {
+        li.classList.add("last-opened");
+      }
 
       if (canReorder) {
         li.draggable = true;
@@ -142,7 +159,7 @@ export function renderItems(
 
       const readMark = document.createElement("span");
       readMark.className = "read-mark";
-      readMark.textContent = read ? "✅" : "";
+      readMark.textContent = session.openedUrls.includes(url) ? "✅" : "";
 
       const a = document.createElement("a");
       a.href = url;

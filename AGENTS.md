@@ -32,9 +32,10 @@
 - `todo/` 実装計画（`/todo-plan` で作成、`/todo-refine` で詰める、`NNN-todo.md` 形式）
 
 ## 仕様・注意点
-- データは `chrome.storage.local` のキー `MiniBookMark_Items` に配列で保存する。要素は `{ url, hostName, title, read }`（お気に入りは `favorite: true` を付与）。キー名は `lib.js` の `STORAGE_KEY` で定義する
-- 同じ URL を追加した場合は古い項目を消して先頭に入れ直す（既読は未読に戻る。仕様としてテストで固定している）
-- リンクをクリックすると既読（`read: true`）になる
+- データは `chrome.storage.local` のキー `MiniBookMark_Items` に配列で保存する。要素は `{ url, hostName, title }`（お気に入りは `favorite: true` を付与）。キー名は `lib.js` の `STORAGE_KEY` で定義する
+- 既読と直前に開いた URL は `chrome.storage.session` のキー `MiniBookMark_Session` に `{ openedUrls, lastOpenedUrl }` で保存する。`storage.local` には保存せず、ブラウザ終了で消える。キー名は `SESSION_KEY` で定義する
+- 同じ URL を追加した場合は古い項目を消して先頭に入れ直す（仕様としてテストで固定している）
+- リンクをクリックすると既読になる。直前に開いた1件は `last-opened` クラスで薄いグレー背景にして強調する
 - 星ボタンでお気に入り（`favorite`）を切り替える。popup / フルタブ画面の「すべて」「お気に入り」で一覧を切り替えられ、検索と併用できる
 - 全件表示のときは記事の行をドラッグ&ドロップで並び替えられる（`moveItem`）。検索中とお気に入り絞り込み中はドラッグ無効
 - 項目の追加・削除のたびにバッジ（件数）を更新する

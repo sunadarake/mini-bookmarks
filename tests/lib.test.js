@@ -1,17 +1,20 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  SESSION_KEY,
   STORAGE_KEY,
   addItem,
   exportItems,
   filterItems,
-  markRead,
+  markOpened,
   mergeItems,
   moveItem,
   toggleFavorite,
   parseHost,
   removeItem,
   renderItems,
+  sessionGet,
+  sessionSet,
   setBadgeText,
   storageGet,
   storageSet,
@@ -73,7 +76,7 @@ describe("addItem", () => {
     ]);
   });
 
-  it("同じ URL は入れ替えて先頭に置き、既読は未読に戻る", () => {
+  it("同じ URL は入れ替えて先頭に置き、read は引き継がない", () => {
     const items = [
       { url: "https://a.com/1", title: "A", read: true },
       { url: "https://b.com/2", title: "B" },
@@ -149,7 +152,7 @@ describe("moveItem", () => {
   });
 });
 
-describe("removeItem / markRead", () => {
+describe("removeItem / markOpened", () => {
   const items = [{ url: "a" }, { url: "b" }];
 
   it("removeItem は対象の URL だけ除く", () => {
@@ -160,22 +163,37 @@ describe("removeItem / markRead", () => {
     expect(removeItem(items, "x")).toEqual(items);
   });
 
-  it("markRead は対象だけ read: true にする", () => {
-    expect(markRead(items, "b")).toEqual([{ url: "a" }, { url: "b", read: true }]);
+  it("markOpened は URL を追加し、直前の URL を更新する", () => {
+    const session = { openedUrls: ["a"], lastOpenedUrl: "a" };
+    expect(markOpened(session, "b")).toEqual({
+      openedUrls: ["a", "b"],
+      lastOpenedUrl: "b",
+    });
   });
 
-  it("markRead は存在しない URL なら変化しない", () => {
-    expect(markRead(items, "x")).toEqual(items);
+  it("markOpened は開いたことのある URL を重複追加しない", () => {
+    const session = { openedUrls: ["a", "b"], lastOpenedUrl: "a" };
+    expect(markOpened(session, "b")).toEqual({
+      openedUrls: ["a", "b"],
+      lastOpenedUrl: "b",
+    });
+  });
+
+  it("markOpened は元のセッションを変更しない", () => {
+    const session = { openedUrls: ["a"], lastOpenedUrl: "a" };
+    markOpened(session, "b");
+    expect(session).toEqual({ openedUrls: ["a"], lastOpenedUrl: "a" });
   });
 });
 
 describe("chrome API を使う関数", () => {
   const local = { get: vi.fn(), set: vi.fn() };
+  const session = { get: vi.fn(), set: vi.fn() };
   const action = { setBadgeText: vi.fn() };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal("chrome", { storage: { local }, action });
+    vi.stubGlobal("chrome", { storage: { local, session }, action });
   });
 
   it("storageGet は未保存なら空配列を返す", async () => {
@@ -197,6 +215,24 @@ describe("chrome API を使う関数", () => {
   it("setBadgeText は件数を文字列で渡す", () => {
     setBadgeText([{}, {}, {}]);
     expect(action.setBadgeText).toHaveBeenCalledWith({ text: "3" });
+  });
+
+  it("sessionGet は未保存なら初期状態を返す", async () => {
+    session.get.mockResolvedValue({});
+    expect(await sessionGet()).toEqual({ openedUrls: [], lastOpenedUrl: "" });
+    expect(session.get).toHaveBeenCalledWith(SESSION_KEY);
+  });
+
+  it("sessionGet は保存済みのセッションを返す", async () => {
+    const saved = { openedUrls: ["a"], lastOpenedUrl: "a" };
+    session.get.mockResolvedValue({ [SESSION_KEY]: saved });
+    expect(await sessionGet()).toEqual(saved);
+  });
+
+  it("sessionSet は SESSION_KEY で保存する", () => {
+    const saved = { openedUrls: ["a"], lastOpenedUrl: "a" };
+    sessionSet(saved);
+    expect(session.set).toHaveBeenCalledWith({ [SESSION_KEY]: saved });
   });
 });
 
@@ -223,13 +259,32 @@ describe("renderItems", () => {
     expect(document.getElementById("total-count").textContent).toBe("Total: 2");
   });
 
-  it("既読マークを表示し、title が無ければ URL を表示する", () => {
-    const items = [{ url: "https://a.com/", hostName: "https://a.com", read: true }];
-    renderItems(items, "", handlers);
+  it("開いた項目にチェックを表示し、title が無ければ URL を表示する", () => {
+    const items = [{ url: "https://a.com/", hostName: "https://a.com" }];
+    renderItems(items, "", handlers, false, {
+      openedUrls: ["https://a.com/"],
+      lastOpenedUrl: "",
+    });
     expect(document.querySelector(".read-mark").textContent).toBe("✅");
     expect(document.querySelector(".bookmark-link").textContent).toContain(
       "https://a.com/",
     );
+  });
+
+  it("直前に開いた項目に last-opened を付け、開いていない項目にはチェックを付けない", () => {
+    const items = [
+      { url: "https://a.com/", hostName: "https://a.com" },
+      { url: "https://b.com/", hostName: "https://b.com" },
+    ];
+    renderItems(items, "", handlers, false, {
+      openedUrls: ["https://a.com/", "https://b.com/"],
+      lastOpenedUrl: "https://b.com/",
+    });
+    const rows = document.querySelectorAll(".bookmark-item");
+    expect(rows[0].classList.contains("last-opened")).toBe(false);
+    expect(rows[0].querySelector(".read-mark").textContent).toBe("✅");
+    expect(rows[1].classList.contains("last-opened")).toBe(true);
+    expect(rows[1].querySelector(".read-mark").textContent).toBe("✅");
   });
 
   it("お気に入りの状態に応じて星を表示し、押すとコールバックを呼ぶ", () => {

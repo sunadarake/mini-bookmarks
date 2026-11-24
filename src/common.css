@@ -91,6 +91,10 @@ body {
     background: #e6f0ff;
 }
 
+.bookmark-item.last-opened {
+    background: #f0f0f0;
+}
+
 .bookmark-link {
     text-decoration: none;
     color: #333;

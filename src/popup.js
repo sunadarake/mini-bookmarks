@@ -1,22 +1,25 @@
 import {
   storageGet,
   storageSet,
+  sessionGet,
+  sessionSet,
   setBadgeText,
   addItem,
   removeItem,
   moveItem,
-  markRead,
+  markOpened,
   toggleFavorite,
   renderItems,
 } from "./lib.js";
 
 let currentItems = [];
+let session = { openedUrls: [], lastOpenedUrl: "" };
 let favoritesOnly = false;
 
 const handlers = {
   onOpen: (url) => {
-    currentItems = markRead(currentItems, url);
-    storageSet(currentItems);
+    session = markOpened(session, url);
+    sessionSet(session);
     render();
   },
   onDelete: (url) => {
@@ -43,6 +46,7 @@ function render() {
     document.getElementById("search").value,
     handlers,
     favoritesOnly,
+    session,
   );
 }
 
@@ -86,7 +90,7 @@ document.getElementById("view-fav-btn").addEventListener("click", () => {
 });
 
 async function init() {
-  currentItems = await storageGet();
+  [currentItems, session] = await Promise.all([storageGet(), sessionGet()]);
   render();
 }
 
