@@ -32,9 +32,10 @@
 - `todo/` 実装計画（`/todo-plan` で作成、`/todo-refine` で詰める、`NNN-todo.md` 形式）
 
 ## 仕様・注意点
-- データは `chrome.storage.local` のキー `MiniBookMark_Items` に配列で保存する。要素は `{ url, hostName, title, read }`。キー名は `lib.js` の `STORAGE_KEY` で定義する
+- データは `chrome.storage.local` のキー `MiniBookMark_Items` に配列で保存する。要素は `{ url, hostName, title, read }`（お気に入りは `favorite: true` を付与）。キー名は `lib.js` の `STORAGE_KEY` で定義する
 - 同じ URL を追加した場合は古い項目を消して先頭に入れ直す（既読は未読に戻る。仕様としてテストで固定している）
 - リンクをクリックすると既読（`read: true`）になる
+- 星ボタンでお気に入り（`favorite`）を切り替える。popup / フルタブ画面の「すべて」「お気に入り」で一覧を切り替えられ、検索と併用できる
 - 項目の追加・削除のたびにバッジ（件数）を更新する
 - `popup.js` / `tab.js` / `background.js` / `options.js` は `type="module"` で `lib.js` を import する。トップレベル await は ES2022 のため使わない
 - エクスポート JSON は `{ version, exportedAt, items }`。`read` は含めず、`favorite` などの状態は保持する。インポートは項目を先頭に追加し、同一 URL はインポート側を優先する（既読は取り込まない）

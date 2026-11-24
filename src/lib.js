@@ -18,12 +18,12 @@ export function parseHost(url) {
   return result ? result[1] : "";
 }
 
-export function filterItems(items, keyword) {
-  return keyword
-    ? items.filter((it) =>
-        (it.title || "").toLowerCase().includes(keyword.toLowerCase()),
-      )
-    : items;
+export function filterItems(items, keyword, favoritesOnly = false) {
+  return items.filter((it) => {
+    if (favoritesOnly && !it.favorite) return false;
+    if (!keyword) return true;
+    return (it.title || "").toLowerCase().includes(keyword.toLowerCase());
+  });
 }
 
 // 同じ URL は古い項目を消して先頭に入れ直す（既読状態は未読に戻る）
@@ -38,6 +38,12 @@ export function removeItem(items, url) {
 
 export function markRead(items, url) {
   return items.map((it) => (it.url === url ? { ...it, read: true } : it));
+}
+
+export function toggleFavorite(items, url) {
+  return items.map((it) =>
+    it.url === url ? { ...it, favorite: !it.favorite } : it,
+  );
 }
 
 export function exportItems(items) {
@@ -67,43 +73,56 @@ export function mergeItems(existing, imported) {
   ];
 }
 
-export function renderItems(items, keyword, { onOpen, onDelete }) {
+export function renderItems(
+  items,
+  keyword,
+  { onOpen, onDelete, onToggleFavorite },
+  favoritesOnly = false,
+) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
 
-  filterItems(items, keyword).forEach(({ url, hostName, title, read }) => {
-    const li = document.createElement("li");
-    li.className = "bookmark-item";
+  filterItems(items, keyword, favoritesOnly).forEach(
+    ({ url, hostName, title, read, favorite }) => {
+      const li = document.createElement("li");
+      li.className = "bookmark-item";
 
-    const readMark = document.createElement("span");
-    readMark.className = "read-mark";
-    readMark.textContent = read ? "✅" : "";
+      const readMark = document.createElement("span");
+      readMark.className = "read-mark";
+      readMark.textContent = read ? "✅" : "";
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.className = "bookmark-link";
-    a.addEventListener("click", () => onOpen(url));
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.className = "bookmark-link";
+      a.addEventListener("click", () => onOpen(url));
 
-    const img = document.createElement("img");
-    img.src = `https://www.google.com/s2/favicons?domain=${hostName}`;
-    img.alt = "Favicon";
-    img.className = "favicon";
+      const img = document.createElement("img");
+      img.src = `https://www.google.com/s2/favicons?domain=${hostName}`;
+      img.alt = "Favicon";
+      img.className = "favicon";
 
-    a.appendChild(img);
-    a.append(` ${title || url}`);
+      a.appendChild(img);
+      a.append(` ${title || url}`);
 
-    const deleteBtn = document.createElement("button");
-    deleteBtn.className = "delete-btn";
-    deleteBtn.textContent = "✕";
-    deleteBtn.addEventListener("click", () => onDelete(url));
+      const starBtn = document.createElement("button");
+      starBtn.className = favorite ? "star-btn active" : "star-btn";
+      starBtn.textContent = favorite ? "★" : "☆";
+      starBtn.addEventListener("click", () => onToggleFavorite(url));
 
-    li.appendChild(readMark);
-    li.appendChild(a);
-    li.appendChild(deleteBtn);
-    list.appendChild(li);
-  });
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "✕";
+      deleteBtn.addEventListener("click", () => onDelete(url));
+
+      li.appendChild(readMark);
+      li.appendChild(a);
+      li.appendChild(starBtn);
+      li.appendChild(deleteBtn);
+      list.appendChild(li);
+    },
+  );
 
   document.getElementById("total-count").textContent =
     `Total: ${items.length}`;

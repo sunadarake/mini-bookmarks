@@ -5,10 +5,12 @@ import {
   addItem,
   removeItem,
   markRead,
+  toggleFavorite,
   renderItems,
 } from "./lib.js";
 
 let currentItems = [];
+let favoritesOnly = false;
 
 const handlers = {
   onOpen: (url) => {
@@ -22,10 +24,31 @@ const handlers = {
     setBadgeText(currentItems);
     render();
   },
+  onToggleFavorite: (url) => {
+    currentItems = toggleFavorite(currentItems, url);
+    storageSet(currentItems);
+    render();
+  },
 };
 
 function render() {
-  renderItems(currentItems, document.getElementById("search").value, handlers);
+  renderItems(
+    currentItems,
+    document.getElementById("search").value,
+    handlers,
+    favoritesOnly,
+  );
+}
+
+function setView(value) {
+  favoritesOnly = value;
+  document
+    .getElementById("view-all-btn")
+    .classList.toggle("active", !favoritesOnly);
+  document
+    .getElementById("view-fav-btn")
+    .classList.toggle("active", favoritesOnly);
+  render();
 }
 
 async function addURL() {
@@ -49,6 +72,12 @@ document
   .addEventListener("click", () => chrome.runtime.openOptionsPage());
 document.getElementById("add-btn").addEventListener("click", addURL);
 document.getElementById("search").addEventListener("input", render);
+document.getElementById("view-all-btn").addEventListener("click", () => {
+  setView(false);
+});
+document.getElementById("view-fav-btn").addEventListener("click", () => {
+  setView(true);
+});
 
 async function init() {
   currentItems = await storageGet();

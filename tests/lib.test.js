@@ -7,6 +7,7 @@ import {
   filterItems,
   markRead,
   mergeItems,
+  toggleFavorite,
   parseHost,
   removeItem,
   renderItems,
@@ -50,6 +51,15 @@ describe("filterItems", () => {
   it("title が無い項目は一致しない", () => {
     expect(filterItems(items, "undefined")).toEqual([]);
   });
+
+  it("お気に入りのみに絞り込める", () => {
+    const favored = [
+      { url: "a", title: "apple", favorite: true },
+      { url: "b", title: "banana" },
+    ];
+    expect(filterItems(favored, "", true)).toEqual([favored[0]]);
+    expect(filterItems(favored, "banana", true)).toEqual([]);
+  });
 });
 
 describe("addItem", () => {
@@ -78,6 +88,29 @@ describe("addItem", () => {
     const items = [{ url: "https://a.com/1" }];
     addItem(items, { url: "https://b.com/2", title: "B" });
     expect(items).toHaveLength(1);
+  });
+});
+
+describe("toggleFavorite", () => {
+  it("対象だけお気に入りを切り替える", () => {
+    const items = [
+      { url: "a", title: "A" },
+      { url: "b", title: "B", favorite: true },
+    ];
+    expect(toggleFavorite(items, "a")).toEqual([
+      { url: "a", title: "A", favorite: true },
+      items[1],
+    ]);
+    expect(toggleFavorite(items, "b")).toEqual([
+      items[0],
+      { url: "b", title: "B", favorite: false },
+    ]);
+  });
+
+  it("存在しない URL なら変化せず、元配列も変更しない", () => {
+    const items = [{ url: "a", title: "A" }];
+    expect(toggleFavorite(items, "x")).toEqual(items);
+    expect(items[0].favorite).toBeUndefined();
   });
 });
 
@@ -133,7 +166,11 @@ describe("chrome API を使う関数", () => {
 });
 
 describe("renderItems", () => {
-  const handlers = { onOpen: vi.fn(), onDelete: vi.fn() };
+  const handlers = {
+    onOpen: vi.fn(),
+    onDelete: vi.fn(),
+    onToggleFavorite: vi.fn(),
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -158,6 +195,30 @@ describe("renderItems", () => {
     expect(document.querySelector(".bookmark-link").textContent).toContain(
       "https://a.com/",
     );
+  });
+
+  it("お気に入りの状態に応じて星を表示し、押すとコールバックを呼ぶ", () => {
+    const items = [
+      { url: "https://a.com/", hostName: "https://a.com", favorite: true },
+      { url: "https://b.com/", hostName: "https://b.com" },
+    ];
+    renderItems(items, "", handlers);
+    const stars = document.querySelectorAll(".star-btn");
+    expect(stars[0].classList.contains("active")).toBe(true);
+    expect(stars[0].textContent).toBe("★");
+    expect(stars[1].classList.contains("active")).toBe(false);
+    expect(stars[1].textContent).toBe("☆");
+    stars[1].click();
+    expect(handlers.onToggleFavorite).toHaveBeenCalledWith("https://b.com/");
+  });
+
+  it("お気に入りのみの一覧に絞り込める", () => {
+    const items = [
+      { url: "https://a.com/", hostName: "https://a.com", favorite: true },
+      { url: "https://b.com/", hostName: "https://b.com" },
+    ];
+    renderItems(items, "", handlers, true);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(1);
   });
 
   it("リンクと削除ボタンでコールバックを呼ぶ", () => {
