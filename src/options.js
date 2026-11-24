@@ -1,6 +1,8 @@
 import {
   storageGet,
   storageSet,
+  settingsGet,
+  settingsSet,
   setBadgeText,
   exportItems,
   mergeItems,
@@ -11,6 +13,7 @@ const dropZone = document.getElementById("drop-zone");
 const fileInput = document.getElementById("file-input");
 const preview = document.getElementById("preview");
 const saveBtn = document.getElementById("save-btn");
+const confirmDelete = document.getElementById("confirm-delete");
 
 let pendingItems = [];
 
@@ -88,6 +91,16 @@ async function save() {
 document.getElementById("export-btn").addEventListener("click", exportData);
 saveBtn.addEventListener("click", save);
 fileInput.addEventListener("change", () => readFile(fileInput.files[0]));
+confirmDelete.addEventListener("change", () => {
+  settingsSet({ confirmDelete: confirmDelete.checked });
+});
+
+async function initSettings() {
+  const settings = await settingsGet();
+  confirmDelete.checked = settings.confirmDelete;
+}
+
+initSettings();
 
 dropZone.addEventListener("click", () => fileInput.click());
 dropZone.addEventListener("dragover", (event) => {

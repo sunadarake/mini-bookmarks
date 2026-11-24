@@ -1,5 +1,8 @@
 export const STORAGE_KEY = "MiniBookMark_Items";
 export const SESSION_KEY = "MiniBookMark_Session";
+export const SETTINGS_KEY = "MiniBookMark_Settings";
+
+const DEFAULT_SETTINGS = { confirmDelete: false };
 
 export async function storageGet() {
   const data = await chrome.storage.local.get(STORAGE_KEY);
@@ -17,6 +20,15 @@ export async function sessionGet() {
 
 export function sessionSet(session) {
   chrome.storage.session.set({ [SESSION_KEY]: session });
+}
+
+export async function settingsGet() {
+  const data = await chrome.storage.local.get(SETTINGS_KEY);
+  return { ...DEFAULT_SETTINGS, ...data[SETTINGS_KEY] };
+}
+
+export function settingsSet(settings) {
+  chrome.storage.local.set({ [SETTINGS_KEY]: settings });
 }
 
 export function setBadgeText(items) {

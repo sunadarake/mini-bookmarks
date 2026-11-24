@@ -3,6 +3,7 @@ import {
   storageSet,
   sessionGet,
   sessionSet,
+  settingsGet,
   setBadgeText,
   removeItem,
   moveItem,
@@ -13,6 +14,7 @@ import {
 
 let currentItems = [];
 let session = { openedUrls: [], lastOpenedUrl: "" };
+let settings = { confirmDelete: false };
 let favoritesOnly = false;
 
 const handlers = {
@@ -22,6 +24,9 @@ const handlers = {
     render();
   },
   onDelete: (url) => {
+    if (settings.confirmDelete && !window.confirm("この記事を削除しますか？")) {
+      return;
+    }
     currentItems = removeItem(currentItems, url);
     storageSet(currentItems);
     setBadgeText(currentItems);
@@ -72,7 +77,11 @@ document
   .addEventListener("click", () => chrome.runtime.openOptionsPage());
 
 async function init() {
-  [currentItems, session] = await Promise.all([storageGet(), sessionGet()]);
+  [currentItems, session, settings] = await Promise.all([
+    storageGet(),
+    sessionGet(),
+    settingsGet(),
+  ]);
   render();
 }
 

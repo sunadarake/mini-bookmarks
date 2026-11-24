@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SESSION_KEY,
+  SETTINGS_KEY,
   STORAGE_KEY,
   addItem,
   exportItems,
@@ -16,6 +17,8 @@ import {
   sessionGet,
   sessionSet,
   setBadgeText,
+  settingsGet,
+  settingsSet,
   storageGet,
   storageSet,
 } from "../src/lib.js";
@@ -233,6 +236,26 @@ describe("chrome API を使う関数", () => {
     const saved = { openedUrls: ["a"], lastOpenedUrl: "a" };
     sessionSet(saved);
     expect(session.set).toHaveBeenCalledWith({ [SESSION_KEY]: saved });
+  });
+
+  it("settingsGet は未保存なら既定値を返す", async () => {
+    local.get.mockResolvedValue({});
+    expect(await settingsGet()).toEqual({ confirmDelete: false });
+    expect(local.get).toHaveBeenCalledWith(SETTINGS_KEY);
+  });
+
+  it("settingsGet は保存値を既定値にマージして返す", async () => {
+    local.get.mockResolvedValue({
+      [SETTINGS_KEY]: { confirmDelete: true },
+    });
+    expect(await settingsGet()).toEqual({ confirmDelete: true });
+  });
+
+  it("settingsSet は SETTINGS_KEY で保存する", () => {
+    settingsSet({ confirmDelete: true });
+    expect(local.set).toHaveBeenCalledWith({
+      [SETTINGS_KEY]: { confirmDelete: true },
+    });
   });
 });
 

@@ -25,7 +25,7 @@
 - `src/background.js` サービスワーカー。起動・インストール時にバッジの件数を更新する
 - `src/popup.html` / `src/popup.js` ポップアップ。現在のタブの追加、検索、既読化、削除、フルタブ画面とオプションを開く
 - `src/tab.html` / `src/tab.js` フルタブ画面。一覧、検索、既読化、削除（追加はできない）とオプションを開く導線
-- `src/options.html` / `src/options.js` オプション画面。JSON エクスポートと、ファイル選択・ドラッグ&ドロップによるインポート（`manifest.json` の `options_ui`）
+- `src/options.html` / `src/options.js` オプション画面。JSON エクスポートと、ファイル選択・ドラッグ&ドロップによるインポート、削除前確認の設定（`manifest.json` の `options_ui`）
 - `src/common.css` ポップアップ・フルタブ・オプション共通のスタイル、`src/tab.css` フルタブ専用
 - `assets/img/` アイコン
 - `tests/` Vitest のテスト（`lib.js` が対象）
@@ -34,6 +34,7 @@
 ## 仕様・注意点
 - データは `chrome.storage.local` のキー `MiniBookMark_Items` に配列で保存する。要素は `{ url, hostName, title }`（お気に入りは `favorite: true` を付与）。キー名は `lib.js` の `STORAGE_KEY` で定義する
 - 既読と直前に開いた URL は `chrome.storage.session` のキー `MiniBookMark_Session` に `{ openedUrls, lastOpenedUrl }` で保存する。`storage.local` には保存せず、ブラウザ終了で消える。キー名は `SESSION_KEY` で定義する
+- 設定は `chrome.storage.local` のキー `MiniBookMark_Settings` に `{ confirmDelete }` で保存する。既定は `false`（確認なしで削除）。キー名は `SETTINGS_KEY` で定義する。オプションで ON にすると popup / フルタブ画面の削除時に `window.confirm()` を出し、設定はエクスポート/インポート対象外
 - 同じ URL を追加した場合は古い項目を消して先頭に入れ直す（仕様としてテストで固定している）
 - リンクをクリックすると既読になる。直前に開いた1件は `last-opened` クラスで薄いグレー背景にして強調する
 - 星ボタンでお気に入り（`favorite`）を切り替える。popup / フルタブ画面の「すべて」「お気に入り」で一覧を切り替えられ、検索と併用できる
