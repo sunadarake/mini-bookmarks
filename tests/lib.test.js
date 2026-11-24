@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   STORAGE_KEY,
   addItem,
+  exportItems,
   filterItems,
   markRead,
+  mergeItems,
   parseHost,
   removeItem,
   renderItems,
@@ -165,5 +167,80 @@ describe("renderItems", () => {
     document.querySelector(".delete-btn").click();
     expect(handlers.onOpen).toHaveBeenCalledWith("https://a.com/");
     expect(handlers.onDelete).toHaveBeenCalledWith("https://a.com/");
+  });
+});
+
+describe("exportItems", () => {
+  it("read を除外し、favorite などの状態は保持する", () => {
+    const items = [
+      {
+        url: "https://a.com/",
+        hostName: "https://a.com",
+        title: "A",
+        read: true,
+        favorite: true,
+      },
+      { url: "https://b.com/", hostName: "https://b.com", title: "B" },
+    ];
+    const result = exportItems(items);
+    expect(result.version).toBe(1);
+    expect(typeof result.exportedAt).toBe("string");
+    expect(result.items).toEqual([
+      {
+        url: "https://a.com/",
+        hostName: "https://a.com",
+        title: "A",
+        favorite: true,
+      },
+      { url: "https://b.com/", hostName: "https://b.com", title: "B" },
+    ]);
+  });
+
+  it("元の配列を変更しない", () => {
+    const items = [{ url: "https://a.com/", read: true }];
+    exportItems(items);
+    expect(items[0].read).toBe(true);
+  });
+});
+
+describe("mergeItems", () => {
+  it("インポート項目を先頭に、インポート順を維持して並べる", () => {
+    const existing = [
+      { url: "https://a.com/", title: "A" },
+      { url: "https://b.com/", title: "B" },
+    ];
+    const imported = [
+      { url: "https://c.com/", title: "C" },
+      { url: "https://d.com/", title: "D" },
+    ];
+    const result = mergeItems(existing, imported);
+    expect(result.map((it) => it.url)).toEqual([
+      "https://c.com/",
+      "https://d.com/",
+      "https://a.com/",
+      "https://b.com/",
+    ]);
+  });
+
+  it("同一 URL はインポート側を優先し、重複させない", () => {
+    const existing = [
+      { url: "https://a.com/", title: "old", read: true },
+      { url: "https://b.com/", title: "B" },
+    ];
+    const imported = [{ url: "https://a.com/", title: "new" }];
+    const result = mergeItems(existing, imported);
+    expect(result).toEqual([
+      { url: "https://a.com/", hostName: "https://a.com", title: "new" },
+      { url: "https://b.com/", title: "B" },
+    ]);
+  });
+
+  it("read は取り込まず、favorite は保持する", () => {
+    const imported = [
+      { url: "https://a.com/", title: "A", read: true, favorite: true },
+    ];
+    const result = mergeItems([], imported);
+    expect(result[0].read).toBeUndefined();
+    expect(result[0].favorite).toBe(true);
   });
 });

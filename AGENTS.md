@@ -25,7 +25,8 @@
 - `src/background.js` サービスワーカー。起動・インストール時にバッジの件数を更新する
 - `src/popup.html` / `src/popup.js` ポップアップ。現在のタブの追加、検索、既読化、削除、フルタブ画面を開く
 - `src/tab.html` / `src/tab.js` フルタブ画面。一覧、検索、既読化、削除（追加はできない）
-- `src/common.css` ポップアップとフルタブ共通のスタイル、`src/tab.css` フルタブ専用
+- `src/options.html` / `src/options.js` オプション画面。JSON エクスポートと、ファイル選択・ドラッグ&ドロップによるインポート（`manifest.json` の `options_ui`）
+- `src/common.css` ポップアップ・フルタブ・オプション共通のスタイル、`src/tab.css` フルタブ専用
 - `assets/img/` アイコン
 - `tests/` Vitest のテスト（`lib.js` が対象）
 - `todo/` 実装計画（`/todo-plan` で作成、`/todo-refine` で詰める、`NNN-todo.md` 形式）
@@ -35,7 +36,8 @@
 - 同じ URL を追加した場合は古い項目を消して先頭に入れ直す（既読は未読に戻る。仕様としてテストで固定している）
 - リンクをクリックすると既読（`read: true`）になる
 - 項目の追加・削除のたびにバッジ（件数）を更新する
-- `popup.js` / `tab.js` / `background.js` は `type="module"` で `lib.js` を import する。トップレベル await は ES2022 のため使わない
+- `popup.js` / `tab.js` / `background.js` / `options.js` は `type="module"` で `lib.js` を import する。トップレベル await は ES2022 のため使わない
+- エクスポート JSON は `{ version, exportedAt, items }`。`read` は含めず、`favorite` などの状態は保持する。インポートは項目を先頭に追加し、同一 URL はインポート側を優先する（既読は取り込まない）
 
 ## 作業の進め方
 - 作業の前に、関連するコードと仕様を読んで理解する

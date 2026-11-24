@@ -12,6 +12,10 @@
     "default_popup": "src/popup.html",
     "default_icon": "assets/img/icon_48.png"
   },
+  "options_ui": {
+    "page": "src/options.html",
+    "open_in_tab": true
+  },
   "icons": {
     "128": "assets/img/icon_128.png",
     "48": "assets/img/icon_48.png",

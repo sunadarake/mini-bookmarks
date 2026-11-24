@@ -40,6 +40,33 @@ export function markRead(items, url) {
   return items.map((it) => (it.url === url ? { ...it, read: true } : it));
 }
 
+export function exportItems(items) {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    items: items.map((item) => {
+      const copy = { ...item };
+      delete copy.read;
+      return copy;
+    }),
+  };
+}
+
+// インポート項目を先頭に並べ、同一 URL はインポート側を優先する（既読は取り込まない）
+export function mergeItems(existing, imported) {
+  const normalized = imported.map((item) => {
+    const copy = { ...item };
+    delete copy.read;
+    copy.hostName = copy.hostName || parseHost(copy.url);
+    return copy;
+  });
+  const importedUrls = new Set(normalized.map((it) => it.url));
+  return [
+    ...normalized,
+    ...existing.filter((it) => !importedUrls.has(it.url)),
+  ];
+}
+
 export function renderItems(items, keyword, { onOpen, onDelete }) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";

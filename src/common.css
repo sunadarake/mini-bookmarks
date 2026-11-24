@@ -145,6 +145,30 @@ body {
     margin-bottom: 8px;
 }
 
+.drop-zone {
+    padding: 24px;
+    margin-bottom: 8px;
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    text-align: center;
+    color: #666;
+    cursor: pointer;
+}
+
+.drop-zone.dragover {
+    border-color: #007bff;
+    background: #f0f6ff;
+}
+
+.preview {
+    margin-bottom: 8px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
 .alert {
     padding: 8px 12px;
     border-radius: 4px;

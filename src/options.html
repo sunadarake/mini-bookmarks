@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Mini Bookmarks Options</title>
+        <link rel="stylesheet" href="common.css" />
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="header-left"></div>
+                <div class="header-title">
+                    <img src="../assets/img/icon_128.png" alt="icon" class="header-icon" />
+                    <span class="header-name">MiniBookmark</span>
+                </div>
+                <div class="header-right"></div>
+            </div>
+            <div id="message" class="alert hidden"></div>
+            <div class="section">
+                <h3>エクスポート</h3>
+                <button id="export-btn" class="btn btn-primary">JSON を保存</button>
+            </div>
+            <div class="section">
+                <h3>インポート</h3>
+                <div id="drop-zone" class="drop-zone">
+                    <p>ここに JSON ファイルをドロップ</p>
+                </div>
+                <input type="file" id="file-input" accept=".json,application/json" />
+                <p id="preview" class="preview"></p>
+                <button id="save-btn" class="btn btn-primary" disabled>保存</button>
+            </div>
+        </div>
+        <script type="module" src="options.js"></script>
+    </body>
+</html>
