@@ -2,7 +2,8 @@ export const STORAGE_KEY = "MiniBookMark_Items";
 export const SESSION_KEY = "MiniBookMark_Session";
 export const SETTINGS_KEY = "MiniBookMark_Settings";
 
-const DEFAULT_SETTINGS = { confirmDelete: false };
+export const DEFAULT_SETTINGS = { confirmDelete: false };
+export const DEFAULT_SESSION = { openedUrls: [], lastOpenedUrl: "" };
 
 export async function storageGet() {
   const data = await chrome.storage.local.get(STORAGE_KEY);
@@ -15,7 +16,7 @@ export function storageSet(items) {
 
 export async function sessionGet() {
   const data = await chrome.storage.session.get(SESSION_KEY);
-  return data[SESSION_KEY] || { openedUrls: [], lastOpenedUrl: "" };
+  return data[SESSION_KEY] || DEFAULT_SESSION;
 }
 
 export function sessionSet(session) {
@@ -83,23 +84,24 @@ export function toggleFavorite(items, url) {
   );
 }
 
+function omitRead(item) {
+  const copy = { ...item };
+  delete copy.read;
+  return copy;
+}
+
 export function exportItems(items) {
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
-    items: items.map((item) => {
-      const copy = { ...item };
-      delete copy.read;
-      return copy;
-    }),
+    items: items.map(omitRead),
   };
 }
 
 // インポート項目を先頭に並べ、同一 URL はインポート側を優先する（既読は取り込まない）
 export function mergeItems(existing, imported) {
   const normalized = imported.map((item) => {
-    const copy = { ...item };
-    delete copy.read;
+    const copy = omitRead(item);
     copy.hostName = copy.hostName || parseHost(copy.url);
     return copy;
   });
@@ -110,19 +112,56 @@ export function mergeItems(existing, imported) {
   ];
 }
 
+// ドラッグ中の URL と、ドラッグ直後かどうかは drag に持たせてリンクのクリックと共有する
+function enableDrag(li, url, list, onReorder, drag) {
+  li.draggable = true;
+  li.addEventListener("dragstart", (e) => {
+    drag.url = url;
+    drag.recently = true;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", url);
+    li.classList.add("dragging");
+  });
+  li.addEventListener("dragover", (e) => {
+    if (drag.url === null || drag.url === url) return;
+    e.preventDefault();
+    li.classList.add("drag-over");
+  });
+  li.addEventListener("dragleave", () => {
+    li.classList.remove("drag-over");
+  });
+  li.addEventListener("drop", (e) => {
+    e.preventDefault();
+    li.classList.remove("drag-over");
+    if (drag.url !== null && drag.url !== url) {
+      onReorder(drag.url, url);
+    }
+    drag.url = null;
+  });
+  li.addEventListener("dragend", () => {
+    li.classList.remove("dragging");
+    drag.url = null;
+    list
+      .querySelectorAll(".drag-over")
+      .forEach((el) => el.classList.remove("drag-over"));
+    setTimeout(() => {
+      drag.recently = false;
+    }, 0);
+  });
+}
+
 export function renderItems(
   items,
   keyword,
   { onOpen, onDelete, onToggleFavorite, onReorder },
   favoritesOnly = false,
-  session = { openedUrls: [], lastOpenedUrl: "" },
+  session = DEFAULT_SESSION,
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
 
   const canReorder = !keyword && !favoritesOnly;
-  let draggedUrl = null;
-  let draggedRecently = false;
+  const drag = { url: null, recently: false };
 
   filterItems(items, keyword, favoritesOnly).forEach(
     ({ url, hostName, title, favorite }) => {
@@ -133,40 +172,7 @@ export function renderItems(
       }
 
       if (canReorder) {
-        li.draggable = true;
-        li.addEventListener("dragstart", (e) => {
-          draggedUrl = url;
-          draggedRecently = true;
-          e.dataTransfer.effectAllowed = "move";
-          e.dataTransfer.setData("text/plain", url);
-          li.classList.add("dragging");
-        });
-        li.addEventListener("dragover", (e) => {
-          if (draggedUrl === null || draggedUrl === url) return;
-          e.preventDefault();
-          li.classList.add("drag-over");
-        });
-        li.addEventListener("dragleave", () => {
-          li.classList.remove("drag-over");
-        });
-        li.addEventListener("drop", (e) => {
-          e.preventDefault();
-          li.classList.remove("drag-over");
-          if (draggedUrl !== null && draggedUrl !== url) {
-            onReorder(draggedUrl, url);
-          }
-          draggedUrl = null;
-        });
-        li.addEventListener("dragend", () => {
-          li.classList.remove("dragging");
-          draggedUrl = null;
-          list
-            .querySelectorAll(".drag-over")
-            .forEach((el) => el.classList.remove("drag-over"));
-          setTimeout(() => {
-            draggedRecently = false;
-          }, 0);
-        });
+        enableDrag(li, url, list, onReorder, drag);
       }
 
       const readMark = document.createElement("span");
@@ -180,9 +186,9 @@ export function renderItems(
       a.className = "bookmark-link";
       a.addEventListener("click", (e) => {
         // ドラッグ直後のクリックで既読・新規タブが走るのを防ぐ
-        if (draggedRecently) {
+        if (drag.recently) {
           e.preventDefault();
-          draggedRecently = false;
+          drag.recently = false;
           return;
         }
         onOpen(url);
@@ -216,4 +222,87 @@ export function renderItems(
 
   document.getElementById("total-count").textContent =
     `Total: ${items.length}`;
+}
+
+// popup と フルタブ画面で共通の一覧の初期化。追加は popup だけが使う
+export async function setupListView() {
+  let [currentItems, session, settings] = await Promise.all([
+    storageGet(),
+    sessionGet(),
+    settingsGet(),
+  ]);
+  let favoritesOnly = false;
+
+  const handlers = {
+    onOpen: (url) => {
+      session = markOpened(session, url);
+      sessionSet(session);
+      render();
+    },
+    onDelete: (url) => {
+      if (
+        settings.confirmDelete &&
+        !window.confirm("この記事を削除しますか？")
+      ) {
+        return;
+      }
+      currentItems = removeItem(currentItems, url);
+      storageSet(currentItems);
+      setBadgeText(currentItems);
+      render();
+    },
+    onToggleFavorite: (url) => {
+      currentItems = toggleFavorite(currentItems, url);
+      storageSet(currentItems);
+      render();
+    },
+    onReorder: (fromUrl, toUrl) => {
+      currentItems = moveItem(currentItems, fromUrl, toUrl);
+      storageSet(currentItems);
+      render();
+    },
+  };
+
+  function render() {
+    renderItems(
+      currentItems,
+      document.getElementById("search").value,
+      handlers,
+      favoritesOnly,
+      session,
+    );
+  }
+
+  function setView(value) {
+    favoritesOnly = value;
+    document
+      .getElementById("view-all-btn")
+      .classList.toggle("active", !favoritesOnly);
+    document
+      .getElementById("view-fav-btn")
+      .classList.toggle("active", favoritesOnly);
+    render();
+  }
+
+  document.getElementById("search").addEventListener("input", render);
+  document.getElementById("view-all-btn").addEventListener("click", () => {
+    setView(false);
+  });
+  document.getElementById("view-fav-btn").addEventListener("click", () => {
+    setView(true);
+  });
+  document
+    .getElementById("menu-btn")
+    .addEventListener("click", () => chrome.runtime.openOptionsPage());
+
+  render();
+
+  return {
+    add: (item) => {
+      currentItems = addItem(currentItems, item);
+      storageSet(currentItems);
+      setBadgeText(currentItems);
+      render();
+    },
+  };
 }
