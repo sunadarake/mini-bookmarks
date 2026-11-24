@@ -16,7 +16,7 @@ ZIP_NAME="mini-bookmarks-v${VERSION}.zip"
 npm test
 
 mkdir -p dist
-rm -f "dist/${ZIP_NAME}"
+rm -f dist/mini-bookmarks-v*.zip
 
 zip -rq "dist/${ZIP_NAME}" manifest.json assets/ src/ -x "*.DS_Store"
 
