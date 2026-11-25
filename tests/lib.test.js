@@ -339,6 +339,7 @@ describe("chrome API を使う関数", () => {
     expect(await settingsGet()).toEqual({
       confirmDelete: false,
       sortMode: "newest",
+      pageSize: PAGE_SIZE,
     });
     expect(local.get).toHaveBeenCalledWith(SETTINGS_KEY);
   });
@@ -350,6 +351,16 @@ describe("chrome API を使う関数", () => {
     expect(await settingsGet()).toEqual({
       confirmDelete: true,
       sortMode: "newest",
+      pageSize: PAGE_SIZE,
+    });
+  });
+
+  it("settingsGet は保存された pageSize を返す", async () => {
+    local.get.mockResolvedValue({ [SETTINGS_KEY]: { pageSize: 30 } });
+    expect(await settingsGet()).toEqual({
+      confirmDelete: false,
+      sortMode: "newest",
+      pageSize: 30,
     });
   });
 
@@ -466,6 +477,7 @@ describe("renderItems", () => {
 describe("setupListView のページング", () => {
   let observerCallback;
   let observed;
+  let local;
 
   beforeEach(() => {
     document.body.innerHTML = `
@@ -474,14 +486,14 @@ describe("setupListView のページング", () => {
       <div id="list-view"></div>
     `;
 
-    const items = Array.from({ length: 250 }, (_, i) => ({
+    const items = Array.from({ length: 90 }, (_, i) => ({
       url: `https://example.com/${i}`,
       hostName: "https://example.com",
       rootUrl: "https://example.com",
       title: `article ${i}`,
       createdAt: i,
     }));
-    const local = {
+    local = {
       get: vi.fn((key) =>
         Promise.resolve(key === STORAGE_KEY ? { [STORAGE_KEY]: items } : {}),
       ),
@@ -509,13 +521,13 @@ describe("setupListView のページング", () => {
     vi.unstubAllGlobals();
   });
 
-  it("最初は 100 件を描画し、スクロールで 100 件ずつ追加する", async () => {
+  it("最初は 30 件を描画し、スクロールで 30 件ずつ追加する", async () => {
     await setupListView();
     expect(observed).toBe(document.getElementById("list-sentinel"));
     expect(document.querySelectorAll(".bookmark-item")).toHaveLength(
       PAGE_SIZE,
     );
-    expect(document.getElementById("total-count").textContent).toBe("Total: 250");
+    expect(document.getElementById("total-count").textContent).toBe("Total: 90");
     expect(document.getElementById("list-sentinel").hidden).toBe(false);
 
     observerCallback([{ isIntersecting: true }]);
@@ -524,11 +536,41 @@ describe("setupListView のページング", () => {
     );
 
     observerCallback([{ isIntersecting: true }]);
-    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(250);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(90);
     expect(document.getElementById("list-sentinel").hidden).toBe(true);
   });
 
-  it("検索を変えると最初の 100 件に戻す", async () => {
+  it("設定した pageSize で描画し、その件数ずつ追加する", async () => {
+    local.get.mockImplementation((key) =>
+      Promise.resolve(
+        key === STORAGE_KEY
+          ? {
+              [STORAGE_KEY]: Array.from({ length: 80 }, (_, i) => ({
+                url: `https://example.com/${i}`,
+                hostName: "https://example.com",
+                rootUrl: "https://example.com",
+                title: `article ${i}`,
+                createdAt: i,
+              })),
+            }
+          : key === SETTINGS_KEY
+            ? { [SETTINGS_KEY]: { pageSize: 30 } }
+            : {},
+      ),
+    );
+
+    await setupListView();
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(30);
+
+    observerCallback([{ isIntersecting: true }]);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(60);
+
+    observerCallback([{ isIntersecting: true }]);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(80);
+    expect(document.getElementById("list-sentinel").hidden).toBe(true);
+  });
+
+  it("検索を変えると最初の 30 件に戻す", async () => {
     await setupListView();
     observerCallback([{ isIntersecting: true }]);
     expect(document.querySelectorAll(".bookmark-item")).toHaveLength(

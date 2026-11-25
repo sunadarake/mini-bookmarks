@@ -25,7 +25,7 @@
 - `src/background.js` サービスワーカー。起動・インストール時にバッジの件数を更新する
 - `src/popup.html` / `src/popup.js` ポップアップ。現在のタブの追加、検索、既読化、削除、フルタブ画面とオプションを開く
 - `src/tab.html` / `src/tab.js` フルタブ画面。一覧、検索、既読化、削除（追加はできない）とオプションを開く導線
-- `src/options.html` / `src/options.js` オプション画面。JSON エクスポートと、ファイル選択・ドラッグ&ドロップによるインポート、削除前確認の設定、現在のバージョンの表示（`manifest.json` の `options_ui`）
+- `src/options.html` / `src/options.js` オプション画面。JSON エクスポートと、ファイル選択・ドラッグ&ドロップによるインポート、削除前確認・一度に表示する記事数の設定、現在のバージョンの表示（`manifest.json` の `options_ui`）
 - `src/common.css` ポップアップ・フルタブ・オプション共通のスタイル（色・角丸・影は CSS 変数で管理）、`src/tab.css` フルタブ専用
 - `assets/img/` アイコン
 - `tests/` Vitest のテスト（`lib.js` が対象）
@@ -34,12 +34,12 @@
 ## 仕様・注意点
 - データは `chrome.storage.local` のキー `MiniBookMark_Items` に配列で保存する。要素は `{ url, hostName, rootUrl, title, createdAt }`。`rootUrl` はサイトのオリジン（`parseHost` の結果、`hostName` と同値）、`createdAt` は追加日時のミリ秒。既存項目は一覧の初回読み込み時に欠損分を補完する。キー名は `lib.js` の `STORAGE_KEY` で定義する
 - 既読と直前に開いた URL は `chrome.storage.session` のキー `MiniBookMark_Session` に `{ openedUrls, lastOpenedUrl, siteUrl }` で保存する。`storage.local` には保存せず、ブラウザ終了で消える。`siteUrl` はサイト絞り込みの状態で、再び開いたときに復元する。キー名は `SESSION_KEY` で定義する
-- 設定は `chrome.storage.local` のキー `MiniBookMark_Settings` に `{ confirmDelete, sortMode }` で保存する。既定は `confirmDelete: false`（確認なしで削除）、`sortMode: "newest"`（新しい順、他は `"oldest"`）。キー名は `SETTINGS_KEY` で定義する。オプションで ON にすると popup / フルタブ画面の削除時に `window.confirm()` を出し、設定はエクスポート/インポート対象外
+- 設定は `chrome.storage.local` のキー `MiniBookMark_Settings` に `{ confirmDelete, sortMode, pageSize }` で保存する。既定は `confirmDelete: false`（確認なしで削除）、`sortMode: "newest"`（新しい順、他は `"oldest"`）、`pageSize: 30`（一度に表示する記事数）。`pageSize` は 10〜100 の 10 記事単位で設定でき、オプション画面のプルダウンから変更する。キー名は `SETTINGS_KEY` で定義する。`confirmDelete` を ON にすると popup / フルタブ画面の削除時に `window.confirm()` を出し、設定はエクスポート/インポート対象外
 - 同じ URL を追加した場合は古い項目を消して先頭に入れ直す（仕様としてテストで固定している）
 - リンクをクリックすると既読になる。直前に開いた1件は `last-opened` クラスで薄いグレー背景にして強調する
 - サイト絞り込みは `site-select`（カスタムドロップダウン）の完全一致のみで、タイトル検索と AND で併用する。ドロップダウン内の検索窓で `rootUrl` の部分一致により候補を絞り込める（検索窓は開くたびにリセット）。候補は保存済み `rootUrl` の重複なし昇順リストで、先頭の「すべてのサイト」で解除する。検索語に一致する候補が無ければ「該当するサイトがありません」を表示する。各候補と選択中の表示に favicon を付ける。`rootUrl` が空の項目はサイト条件では表示されないが、「すべてのサイト」では表示する。絞り込み状態はセッションに保存し、ブラウザを閉じるまで維持する
 - 並び順は「新しい順」「古い順」の toggle ボタンで切り替えられる（`sortItems`）。`createdAt` 基準で、選択中のボタンに `active` を付けて現在の状態を示す。選択は設定に保存し、popup / フルタブ画面の両方に適用する
-- 一覧は最初に `PAGE_SIZE`（100）件だけ描画し、末尾の `#list-sentinel` が画面付近に入るたびに 100 件ずつ追加描画する。検索・並び替え・サイト絞り込みを変えたときは 100 件に戻す。`Total` は全件数を表示する
+- 一覧は最初に設定の `pageSize`（既定 `PAGE_SIZE` = 30）件だけ描画し、末尾の `#list-sentinel` が画面付近に入るたびに `pageSize` 件ずつ追加描画する。検索・並び替え・サイト絞り込みを変えたときは `pageSize` 件に戻す。`Total` は全件数を表示する
 - 一覧が 0 件のときは空状態の案内を表示する（保存 0 件と絞り込み 0 件で文言を分ける）
 - デザインはライトテーマのみ。色・角丸・影は `src/common.css` の CSS 変数で管理し、ポップアップ・フルタブ・オプションの 3 画面で共通化する。オプション画面は中央寄せのカードレイアウトで、ドロップゾーンはクリックとキーボード（Enter / Space）で操作できる
 - 項目の追加・削除のたびにバッジ（件数）を更新する

@@ -571,6 +571,29 @@ a {
     cursor: pointer;
 }
 
+.setting-row + .setting-row {
+    margin-top: 8px;
+}
+
+.setting-row-select {
+    justify-content: space-between;
+}
+
+.setting-select {
+    padding: 6px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.setting-select:focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+}
+
 .drop-zone {
     margin-bottom: 12px;
     padding: 30px 20px;

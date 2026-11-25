@@ -2,9 +2,13 @@ export const STORAGE_KEY = "MiniBookMark_Items";
 export const SESSION_KEY = "MiniBookMark_Session";
 export const SETTINGS_KEY = "MiniBookMark_Settings";
 
-export const PAGE_SIZE = 100;
+export const PAGE_SIZE = 30;
 
-const DEFAULT_SETTINGS = { confirmDelete: false, sortMode: "newest" };
+const DEFAULT_SETTINGS = {
+  confirmDelete: false,
+  sortMode: "newest",
+  pageSize: PAGE_SIZE,
+};
 const DEFAULT_SESSION = {
   openedUrls: [],
   lastOpenedUrl: "",
@@ -254,9 +258,10 @@ export async function setupListView() {
     settingsGet(),
   ]);
   let sortMode = settings.sortMode === "oldest" ? "oldest" : "newest";
+  let pageSize = settings.pageSize;
   let siteUrl = session.siteUrl;
   let siteSearch = "";
-  let visibleCount = PAGE_SIZE;
+  let visibleCount = pageSize;
 
   const normalized = normalizeItems(currentItems);
   if (normalized.some((it, i) => it !== currentItems[i])) {
@@ -356,7 +361,7 @@ export async function setupListView() {
   };
 
   function render(reset = false) {
-    if (reset) visibleCount = PAGE_SIZE;
+    if (reset) visibleCount = pageSize;
     renderItems(
       sortItems(currentItems, sortMode),
       document.getElementById("search").value,
@@ -434,7 +439,7 @@ export async function setupListView() {
   new IntersectionObserver(
     (entries) => {
       if (!entries.some((entry) => entry.isIntersecting)) return;
-      visibleCount += PAGE_SIZE;
+      visibleCount += pageSize;
       render();
     },
     { rootMargin: "200px" },

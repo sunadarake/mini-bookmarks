@@ -14,6 +14,7 @@ const fileInput = document.getElementById("file-input");
 const preview = document.getElementById("preview");
 const saveBtn = document.getElementById("save-btn");
 const confirmDelete = document.getElementById("confirm-delete");
+const pageSize = document.getElementById("page-size");
 const version = document.getElementById("version");
 
 let pendingItems = [];
@@ -100,10 +101,15 @@ confirmDelete.addEventListener("change", async () => {
   const settings = await settingsGet();
   settingsSet({ ...settings, confirmDelete: confirmDelete.checked });
 });
+pageSize.addEventListener("change", async () => {
+  const settings = await settingsGet();
+  settingsSet({ ...settings, pageSize: Number(pageSize.value) });
+});
 
 async function initSettings() {
   const settings = await settingsGet();
   confirmDelete.checked = settings.confirmDelete;
+  pageSize.value = String(settings.pageSize);
 }
 
 initSettings();
