@@ -11,7 +11,6 @@ import {
   mergeItems,
   normalizeItems,
   sortItems,
-  toggleFavorite,
   parseHost,
   removeItem,
   renderItems,
@@ -60,50 +59,33 @@ describe("filterItems", () => {
     expect(filterItems(items, "undefined")).toEqual([]);
   });
 
-  it("お気に入りのみに絞り込める", () => {
-    const favored = [
-      { url: "a", title: "apple", favorite: true },
-      { url: "b", title: "banana" },
-    ];
-    expect(filterItems(favored, "", true)).toEqual([favored[0]]);
-    expect(filterItems(favored, "banana", true)).toEqual([]);
-  });
-
   describe("サイト条件", () => {
     const sites = [
       { url: "https://a.com/1", rootUrl: "https://a.com", title: "apple" },
       { url: "https://a.com/2", rootUrl: "https://a.com", title: "banana" },
-      {
-        url: "https://b.com/1",
-        rootUrl: "https://b.com",
-        title: "apple",
-        favorite: true,
-      },
+      { url: "https://b.com/1", rootUrl: "https://b.com", title: "apple" },
       { url: "chrome://extensions", rootUrl: "", title: "settings" },
     ];
 
     it("siteUrl は rootUrl の完全一致で絞り込む", () => {
       expect(
-        filterItems(sites, "", false, "https://b.com").map((it) => it.url),
+        filterItems(sites, "", "https://b.com").map((it) => it.url),
       ).toEqual(["https://b.com/1"]);
     });
 
     it("siteUrl は部分一致では一致しない", () => {
-      expect(filterItems(sites, "", false, "a.com")).toEqual([]);
+      expect(filterItems(sites, "", "a.com")).toEqual([]);
     });
 
-    it("タイトル検索・お気に入りとは AND で絞り込む", () => {
+    it("タイトル検索とは AND で絞り込む", () => {
       expect(
-        filterItems(sites, "apple", false, "https://a.com").map(
-          (it) => it.url,
-        ),
+        filterItems(sites, "apple", "https://a.com").map((it) => it.url),
       ).toEqual(["https://a.com/1"]);
-      expect(filterItems(sites, "", true, "https://a.com")).toEqual([]);
     });
 
     it("rootUrl が無い項目はサイト条件で除外され、条件なしでは含まれる", () => {
       const missing = [{ url: "chrome://extensions", title: "x" }];
-      expect(filterItems(missing, "", false, "https://a.com")).toEqual([]);
+      expect(filterItems(missing, "", "https://a.com")).toEqual([]);
       expect(filterItems(missing, "")).toEqual(missing);
     });
   });
@@ -233,29 +215,6 @@ describe("sortItems", () => {
       "https://a.com/",
       "https://c.com/",
     ]);
-  });
-});
-
-describe("toggleFavorite", () => {
-  it("対象だけお気に入りを切り替える", () => {
-    const items = [
-      { url: "a", title: "A" },
-      { url: "b", title: "B", favorite: true },
-    ];
-    expect(toggleFavorite(items, "a")).toEqual([
-      { url: "a", title: "A", favorite: true },
-      items[1],
-    ]);
-    expect(toggleFavorite(items, "b")).toEqual([
-      items[0],
-      { url: "b", title: "B", favorite: false },
-    ]);
-  });
-
-  it("存在しない URL なら変化せず、元配列も変更しない", () => {
-    const items = [{ url: "a", title: "A" }];
-    expect(toggleFavorite(items, "x")).toEqual(items);
-    expect(items[0].favorite).toBeUndefined();
   });
 });
 
@@ -404,7 +363,6 @@ describe("renderItems", () => {
   const handlers = {
     onOpen: vi.fn(),
     onDelete: vi.fn(),
-    onToggleFavorite: vi.fn(),
   };
 
   beforeEach(() => {
@@ -425,7 +383,7 @@ describe("renderItems", () => {
 
   it("開いた項目にチェックを表示し、title が無ければ URL を表示する", () => {
     const items = [{ url: "https://a.com/", hostName: "https://a.com" }];
-    renderItems(items, "", handlers, false, {
+    renderItems(items, "", handlers, {
       openedUrls: ["https://a.com/"],
       lastOpenedUrl: "",
     });
@@ -440,7 +398,7 @@ describe("renderItems", () => {
       { url: "https://a.com/", hostName: "https://a.com" },
       { url: "https://b.com/", hostName: "https://b.com" },
     ];
-    renderItems(items, "", handlers, false, {
+    renderItems(items, "", handlers, {
       openedUrls: ["https://a.com/", "https://b.com/"],
       lastOpenedUrl: "https://b.com/",
     });
@@ -449,30 +407,6 @@ describe("renderItems", () => {
     expect(rows[0].querySelector(".read-mark").textContent).toBe("✅");
     expect(rows[1].classList.contains("last-opened")).toBe(true);
     expect(rows[1].querySelector(".read-mark").textContent).toBe("✅");
-  });
-
-  it("お気に入りの状態に応じて星を表示し、押すとコールバックを呼ぶ", () => {
-    const items = [
-      { url: "https://a.com/", hostName: "https://a.com", favorite: true },
-      { url: "https://b.com/", hostName: "https://b.com" },
-    ];
-    renderItems(items, "", handlers);
-    const stars = document.querySelectorAll(".star-btn");
-    expect(stars[0].classList.contains("active")).toBe(true);
-    expect(stars[0].textContent).toBe("★");
-    expect(stars[1].classList.contains("active")).toBe(false);
-    expect(stars[1].textContent).toBe("☆");
-    stars[1].click();
-    expect(handlers.onToggleFavorite).toHaveBeenCalledWith("https://b.com/");
-  });
-
-  it("お気に入りのみの一覧に絞り込める", () => {
-    const items = [
-      { url: "https://a.com/", hostName: "https://a.com", favorite: true },
-      { url: "https://b.com/", hostName: "https://b.com" },
-    ];
-    renderItems(items, "", handlers, true);
-    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(1);
   });
 
   it("リンクと削除ボタンでコールバックを呼ぶ", () => {
@@ -486,14 +420,13 @@ describe("renderItems", () => {
 });
 
 describe("exportItems", () => {
-  it("read を除外し、favorite などの状態は保持する", () => {
+  it("read を除外し、その他の状態は保持する", () => {
     const items = [
       {
         url: "https://a.com/",
         hostName: "https://a.com",
         title: "A",
         read: true,
-        favorite: true,
       },
       { url: "https://b.com/", hostName: "https://b.com", title: "B" },
     ];
@@ -505,7 +438,6 @@ describe("exportItems", () => {
         url: "https://a.com/",
         hostName: "https://a.com",
         title: "A",
-        favorite: true,
       },
       { url: "https://b.com/", hostName: "https://b.com", title: "B" },
     ]);
@@ -576,13 +508,11 @@ describe("mergeItems", () => {
     ]);
   });
 
-  it("read は取り込まず、favorite は保持する", () => {
-    const imported = [
-      { url: "https://a.com/", title: "A", read: true, favorite: true },
-    ];
+  it("read は取り込まず、その他の状態は保持する", () => {
+    const imported = [{ url: "https://a.com/", title: "A", read: true }];
     const result = mergeItems([], imported);
     expect(result[0].read).toBeUndefined();
-    expect(result[0].favorite).toBe(true);
+    expect(result[0].title).toBe("A");
   });
 
   it("createdAt が無いインポート項目に現在時刻を補完し、既存値は保持する", () => {

@@ -45,14 +45,8 @@ export function parseHost(url) {
   return result ? result[1] : "";
 }
 
-export function filterItems(
-  items,
-  keyword,
-  favoritesOnly = false,
-  siteUrl = "",
-) {
+export function filterItems(items, keyword, siteUrl = "") {
   return items.filter((it) => {
-    if (favoritesOnly && !it.favorite) return false;
     if (siteUrl && it.rootUrl !== siteUrl) return false;
     if (!keyword) return true;
     return (it.title || "").toLowerCase().includes(keyword.toLowerCase());
@@ -101,12 +95,6 @@ export function markOpened(session, url) {
   return { ...session, openedUrls, lastOpenedUrl: url };
 }
 
-export function toggleFavorite(items, url) {
-  return items.map((it) =>
-    it.url === url ? { ...it, favorite: !it.favorite } : it,
-  );
-}
-
 function omitRead(item) {
   const copy = { ...item };
   delete copy.read;
@@ -140,16 +128,15 @@ export function mergeItems(existing, imported) {
 export function renderItems(
   items,
   keyword,
-  { onOpen, onDelete, onToggleFavorite },
-  favoritesOnly = false,
+  { onOpen, onDelete },
   session = DEFAULT_SESSION,
   siteUrl = "",
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
 
-  filterItems(items, keyword, favoritesOnly, siteUrl).forEach(
-    ({ url, hostName, title, favorite }) => {
+  filterItems(items, keyword, siteUrl).forEach(
+    ({ url, hostName, title }) => {
       const li = document.createElement("li");
       li.className = "bookmark-item";
       if (session.lastOpenedUrl === url) {
@@ -175,11 +162,6 @@ export function renderItems(
       a.appendChild(img);
       a.append(` ${title || url}`);
 
-      const starBtn = document.createElement("button");
-      starBtn.className = favorite ? "star-btn active" : "star-btn";
-      starBtn.textContent = favorite ? "★" : "☆";
-      starBtn.addEventListener("click", () => onToggleFavorite(url));
-
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "delete-btn";
       deleteBtn.textContent = "✕";
@@ -187,7 +169,6 @@ export function renderItems(
 
       li.appendChild(readMark);
       li.appendChild(a);
-      li.appendChild(starBtn);
       li.appendChild(deleteBtn);
       list.appendChild(li);
     },
@@ -204,7 +185,6 @@ export async function setupListView() {
     sessionGet(),
     settingsGet(),
   ]);
-  let favoritesOnly = false;
   let sortMode = settings.sortMode === "oldest" ? "oldest" : "newest";
   let siteUrl = session.siteUrl;
   let siteSearch = "";
@@ -304,12 +284,6 @@ export async function setupListView() {
       renderSiteOptions();
       render();
     },
-    onToggleFavorite: (url) => {
-      currentItems = toggleFavorite(currentItems, url);
-      storageSet(currentItems);
-      renderSiteOptions();
-      render();
-    },
   };
 
   function render() {
@@ -317,21 +291,9 @@ export async function setupListView() {
       sortItems(currentItems, sortMode),
       document.getElementById("search").value,
       handlers,
-      favoritesOnly,
       session,
       siteUrl,
     );
-  }
-
-  function setView(value) {
-    favoritesOnly = value;
-    document
-      .getElementById("view-all-btn")
-      .classList.toggle("active", !favoritesOnly);
-    document
-      .getElementById("view-fav-btn")
-      .classList.toggle("active", favoritesOnly);
-    render();
   }
 
   function updateSortButtons() {
@@ -392,12 +354,6 @@ export async function setupListView() {
   document
     .getElementById("sort-oldest")
     .addEventListener("click", () => setSort("oldest"));
-  document.getElementById("view-all-btn").addEventListener("click", () => {
-    setView(false);
-  });
-  document.getElementById("view-fav-btn").addEventListener("click", () => {
-    setView(true);
-  });
   document
     .getElementById("menu-btn")
     .addEventListener("click", () => chrome.runtime.openOptionsPage());
