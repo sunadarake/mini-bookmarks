@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   SESSION_KEY,
   SETTINGS_KEY,
@@ -10,6 +10,8 @@ import {
   markOpened,
   mergeItems,
   moveItem,
+  normalizeItems,
+  sortItems,
   toggleFavorite,
   parseHost,
   removeItem,
@@ -70,11 +72,24 @@ describe("filterItems", () => {
 });
 
 describe("addItem", () => {
-  it("新しい項目を先頭に追加し hostName を付ける", () => {
+  beforeEach(() => {
+    vi.spyOn(Date, "now").mockReturnValue(1000);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("新しい項目を先頭に追加し hostName と createdAt を付ける", () => {
     const items = [{ url: "https://a.com/1", hostName: "https://a.com" }];
     const result = addItem(items, { url: "https://b.com/2", title: "B" });
     expect(result).toEqual([
-      { url: "https://b.com/2", hostName: "https://b.com", title: "B" },
+      {
+        url: "https://b.com/2",
+        hostName: "https://b.com",
+        title: "B",
+        createdAt: 1000,
+      },
       items[0],
     ]);
   });
@@ -86,7 +101,12 @@ describe("addItem", () => {
     ];
     const result = addItem(items, { url: "https://a.com/1", title: "A2" });
     expect(result).toEqual([
-      { url: "https://a.com/1", hostName: "https://a.com", title: "A2" },
+      {
+        url: "https://a.com/1",
+        hostName: "https://a.com",
+        title: "A2",
+        createdAt: 1000,
+      },
       items[1],
     ]);
   });
@@ -95,6 +115,81 @@ describe("addItem", () => {
     const items = [{ url: "https://a.com/1" }];
     addItem(items, { url: "https://b.com/2", title: "B" });
     expect(items).toHaveLength(1);
+  });
+});
+
+describe("normalizeItems", () => {
+  it("createdAt が無い項目だけ現在時刻で補完する", () => {
+    const items = [
+      { url: "a", createdAt: 500 },
+      { url: "b" },
+    ];
+    expect(normalizeItems(items, 1000)).toEqual([
+      { url: "a", createdAt: 500 },
+      { url: "b", createdAt: 1000 },
+    ]);
+  });
+
+  it("全件に createdAt があれば同じ内容を返し、元配列は変更しない", () => {
+    const items = [{ url: "a", createdAt: 500 }];
+    expect(normalizeItems(items, 1000)).toEqual(items);
+    expect(items[0]).toEqual({ url: "a", createdAt: 500 });
+  });
+});
+
+describe("sortItems", () => {
+  const items = [
+    { url: "https://b.com/", hostName: "https://b.com", title: "banana", createdAt: 200 },
+    { url: "https://a.com/", hostName: "https://a.com", title: "apple", createdAt: 100 },
+    { url: "https://c.com/", hostName: "https://c.com", title: "cherry", createdAt: 300 },
+  ];
+
+  it("newest は createdAt の降順", () => {
+    expect(sortItems(items, "newest").map((it) => it.url)).toEqual([
+      "https://c.com/",
+      "https://b.com/",
+      "https://a.com/",
+    ]);
+  });
+
+  it("oldest は createdAt の昇順", () => {
+    expect(sortItems(items, "oldest").map((it) => it.url)).toEqual([
+      "https://a.com/",
+      "https://b.com/",
+      "https://c.com/",
+    ]);
+  });
+
+  it("title はタイトルの昇順で、タイトル無しは URL を使う", () => {
+    const withNoTitle = [
+      { url: "https://x.com/", title: "zzz" },
+      { url: "https://a.com/" },
+    ];
+    expect(sortItems(withNoTitle, "title").map((it) => it.url)).toEqual([
+      "https://a.com/",
+      "https://x.com/",
+    ]);
+  });
+
+  it("site は hostName の昇順", () => {
+    expect(sortItems(items, "site").map((it) => it.url)).toEqual([
+      "https://a.com/",
+      "https://b.com/",
+      "https://c.com/",
+    ]);
+  });
+
+  it("manual は元の配列順を維持する", () => {
+    expect(sortItems(items, "manual")).toEqual(items);
+  });
+
+  it("元の配列を変更しない", () => {
+    sortItems(items, "newest");
+    expect(items.map((it) => it.url)).toEqual([
+      "https://b.com/",
+      "https://a.com/",
+      "https://c.com/",
+    ]);
   });
 });
 
@@ -240,7 +335,10 @@ describe("chrome API を使う関数", () => {
 
   it("settingsGet は未保存なら既定値を返す", async () => {
     local.get.mockResolvedValue({});
-    expect(await settingsGet()).toEqual({ confirmDelete: false });
+    expect(await settingsGet()).toEqual({
+      confirmDelete: false,
+      sortMode: "newest",
+    });
     expect(local.get).toHaveBeenCalledWith(SETTINGS_KEY);
   });
 
@@ -248,7 +346,10 @@ describe("chrome API を使う関数", () => {
     local.get.mockResolvedValue({
       [SETTINGS_KEY]: { confirmDelete: true },
     });
-    expect(await settingsGet()).toEqual({ confirmDelete: true });
+    expect(await settingsGet()).toEqual({
+      confirmDelete: true,
+      sortMode: "newest",
+    });
   });
 
   it("settingsSet は SETTINGS_KEY で保存する", () => {
@@ -375,9 +476,22 @@ describe("exportItems", () => {
     exportItems(items);
     expect(items[0].read).toBe(true);
   });
+
+  it("createdAt を保持する", () => {
+    const items = [{ url: "https://a.com/", createdAt: 500 }];
+    expect(exportItems(items).items[0].createdAt).toBe(500);
+  });
 });
 
 describe("mergeItems", () => {
+  beforeEach(() => {
+    vi.spyOn(Date, "now").mockReturnValue(2000);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("インポート項目を先頭に、インポート順を維持して並べる", () => {
     const existing = [
       { url: "https://a.com/", title: "A" },
@@ -404,7 +518,12 @@ describe("mergeItems", () => {
     const imported = [{ url: "https://a.com/", title: "new" }];
     const result = mergeItems(existing, imported);
     expect(result).toEqual([
-      { url: "https://a.com/", hostName: "https://a.com", title: "new" },
+      {
+        url: "https://a.com/",
+        hostName: "https://a.com",
+        title: "new",
+        createdAt: 2000,
+      },
       { url: "https://b.com/", title: "B" },
     ]);
   });
@@ -416,5 +535,15 @@ describe("mergeItems", () => {
     const result = mergeItems([], imported);
     expect(result[0].read).toBeUndefined();
     expect(result[0].favorite).toBe(true);
+  });
+
+  it("createdAt が無いインポート項目に現在時刻を補完し、既存値は保持する", () => {
+    const imported = [
+      { url: "https://a.com/" },
+      { url: "https://b.com/", createdAt: 500 },
+    ];
+    const result = mergeItems([], imported);
+    expect(result[0].createdAt).toBe(2000);
+    expect(result[1].createdAt).toBe(500);
   });
 });

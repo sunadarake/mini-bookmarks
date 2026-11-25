@@ -92,8 +92,9 @@ async function save() {
 document.getElementById("export-btn").addEventListener("click", exportData);
 saveBtn.addEventListener("click", save);
 fileInput.addEventListener("change", () => readFile(fileInput.files[0]));
-confirmDelete.addEventListener("change", () => {
-  settingsSet({ confirmDelete: confirmDelete.checked });
+confirmDelete.addEventListener("change", async () => {
+  const settings = await settingsGet();
+  settingsSet({ ...settings, confirmDelete: confirmDelete.checked });
 });
 
 async function initSettings() {

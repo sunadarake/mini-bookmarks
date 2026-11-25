@@ -2,7 +2,7 @@ export const STORAGE_KEY = "MiniBookMark_Items";
 export const SESSION_KEY = "MiniBookMark_Session";
 export const SETTINGS_KEY = "MiniBookMark_Settings";
 
-export const DEFAULT_SETTINGS = { confirmDelete: false };
+export const DEFAULT_SETTINGS = { confirmDelete: false, sortMode: "newest" };
 export const DEFAULT_SESSION = { openedUrls: [], lastOpenedUrl: "" };
 
 export async function storageGet() {
@@ -52,7 +52,34 @@ export function filterItems(items, keyword, favoritesOnly = false) {
 // 同じ URL は古い項目を消して先頭に入れ直す
 export function addItem(items, { url, title }) {
   const filtered = items.filter((it) => it.url !== url);
-  return [{ url, hostName: parseHost(url), title }, ...filtered];
+  return [
+    { url, hostName: parseHost(url), title, createdAt: Date.now() },
+    ...filtered,
+  ];
+}
+
+export function normalizeItems(items, now = Date.now()) {
+  return items.map((it) => (it.createdAt ? it : { ...it, createdAt: now }));
+}
+
+export function sortItems(items, mode) {
+  if (mode === "manual") return [...items];
+
+  const result = [...items];
+  if (mode === "oldest") {
+    result.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  } else if (mode === "title") {
+    result.sort((a, b) =>
+      (a.title || a.url || "").localeCompare(b.title || b.url || "", "ja"),
+    );
+  } else if (mode === "site") {
+    result.sort((a, b) =>
+      (a.hostName || "").localeCompare(b.hostName || "", "ja"),
+    );
+  } else {
+    result.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  }
+  return result;
 }
 
 export function removeItem(items, url) {
@@ -103,6 +130,7 @@ export function mergeItems(existing, imported) {
   const normalized = imported.map((item) => {
     const copy = omitRead(item);
     copy.hostName = copy.hostName || parseHost(copy.url);
+    copy.createdAt = copy.createdAt || Date.now();
     return copy;
   });
   const importedUrls = new Set(normalized.map((it) => it.url));
@@ -156,11 +184,12 @@ export function renderItems(
   { onOpen, onDelete, onToggleFavorite, onReorder },
   favoritesOnly = false,
   session = DEFAULT_SESSION,
+  sortMode = "newest",
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
 
-  const canReorder = !keyword && !favoritesOnly;
+  const canReorder = sortMode === "manual" && !keyword && !favoritesOnly;
   const drag = { url: null, recently: false };
 
   filterItems(items, keyword, favoritesOnly).forEach(
@@ -232,6 +261,13 @@ export async function setupListView() {
     settingsGet(),
   ]);
   let favoritesOnly = false;
+  let sortMode = settings.sortMode;
+
+  const normalized = normalizeItems(currentItems);
+  if (normalized.some((it, i) => it !== currentItems[i])) {
+    currentItems = normalized;
+    storageSet(currentItems);
+  }
 
   const handlers = {
     onOpen: (url) => {
@@ -265,11 +301,12 @@ export async function setupListView() {
 
   function render() {
     renderItems(
-      currentItems,
+      sortItems(currentItems, sortMode),
       document.getElementById("search").value,
       handlers,
       favoritesOnly,
       session,
+      sortMode,
     );
   }
 
@@ -285,6 +322,14 @@ export async function setupListView() {
   }
 
   document.getElementById("search").addEventListener("input", render);
+  const sortSelect = document.getElementById("sort-select");
+  sortSelect.value = sortMode;
+  sortSelect.addEventListener("change", () => {
+    sortMode = sortSelect.value;
+    settings = { ...settings, sortMode };
+    settingsSet(settings);
+    render();
+  });
   document.getElementById("view-all-btn").addEventListener("click", () => {
     setView(false);
   });
