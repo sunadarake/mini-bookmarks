@@ -5,12 +5,26 @@
         <title>Mini Bookmarks</title>
         <link rel="stylesheet" href="common.css" />
     </head>
-    <body>
+    <body class="popup-page">
         <div class="container">
             <div class="header">
                 <div class="header-left">
-                    <button id="open-tab-btn" class="btn">↗</button>
-                    <button id="menu-btn" class="btn menu-btn" aria-label="オプションを開く">☰</button>
+                    <button
+                        id="open-tab-btn"
+                        class="btn"
+                        title="フルタブ画面を開く"
+                        aria-label="フルタブ画面を開く"
+                    >
+                        ↗
+                    </button>
+                    <button
+                        id="menu-btn"
+                        class="btn menu-btn"
+                        title="オプションを開く"
+                        aria-label="オプションを開く"
+                    >
+                        ☰
+                    </button>
                 </div>
                 <div class="header-title">
                     <img src="../assets/img/icon_128.png" alt="icon" class="header-icon" />
@@ -18,7 +32,9 @@
                 </div>
                 <div class="header-right">
                     <span id="total-count">Total: 0</span>
-                    <button id="add-btn" class="btn btn-success">Add +</button>
+                    <button id="add-btn" class="btn btn-success" title="このページを保存">
+                        Add +
+                    </button>
                 </div>
             </div>
             <input

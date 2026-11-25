@@ -178,6 +178,16 @@ export function renderItems(
     },
   );
 
+  if (filtered.length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "list-empty";
+    empty.textContent =
+      items.length === 0
+        ? "保存された記事はまだありません"
+        : "条件に一致する記事がありません";
+    list.appendChild(empty);
+  }
+
   const sentinel = document.getElementById("list-sentinel");
   if (sentinel) sentinel.hidden = filtered.length <= limit;
 

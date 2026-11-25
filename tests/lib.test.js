@@ -383,6 +383,26 @@ describe("renderItems", () => {
     expect(document.getElementById("total-count").textContent).toBe("Total: 2");
   });
 
+  it("記事が 1 件も無ければ空状態を表示する", () => {
+    renderItems([], "", handlers);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(0);
+    expect(document.querySelector(".list-empty").textContent).toBe(
+      "保存された記事はまだありません",
+    );
+  });
+
+  it("絞り込み結果が 0 件なら該当なしの空状態を表示する", () => {
+    const items = [
+      { url: "https://a.com/", hostName: "https://a.com", title: "apple" },
+    ];
+    renderItems(items, "banana", handlers);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(0);
+    expect(document.querySelector(".list-empty").textContent).toBe(
+      "条件に一致する記事がありません",
+    );
+    expect(document.getElementById("total-count").textContent).toBe("Total: 1");
+  });
+
   it("開いた項目にチェックを表示し、title が無ければ URL を表示する", () => {
     const items = [{ url: "https://a.com/", hostName: "https://a.com" }];
     renderItems(items, "", handlers, {

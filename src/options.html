@@ -5,7 +5,7 @@
         <title>Mini Bookmarks Options</title>
         <link rel="stylesheet" href="common.css" />
     </head>
-    <body>
+    <body class="options-page">
         <div class="container">
             <div class="header">
                 <div class="header-left"></div>
@@ -15,7 +15,7 @@
                 </div>
                 <div class="header-right"></div>
             </div>
-            <div id="message" class="alert hidden"></div>
+            <div id="message" class="alert hidden" role="status"></div>
             <div class="section">
                 <h3>設定</h3>
                 <label class="setting-row">
@@ -25,12 +25,25 @@
             </div>
             <div class="section">
                 <h3>エクスポート</h3>
+                <p class="section-desc">
+                    保存した記事を JSON ファイルとして書き出します。
+                </p>
                 <button id="export-btn" class="btn btn-primary">JSON を保存</button>
             </div>
             <div class="section">
                 <h3>インポート</h3>
-                <div id="drop-zone" class="drop-zone">
-                    <p>ここに JSON ファイルをドロップ</p>
+                <p class="section-desc">
+                    書き出した JSON を読み込み、記事を追加します。
+                </p>
+                <div
+                    id="drop-zone"
+                    class="drop-zone"
+                    role="button"
+                    tabindex="0"
+                    aria-label="JSON ファイルを選択"
+                >
+                    <p class="drop-zone-title">JSON ファイルをドロップ</p>
+                    <p class="drop-zone-hint">またはクリックして選択</p>
                 </div>
                 <input type="file" id="file-input" accept=".json,application/json" />
                 <p id="preview" class="preview"></p>

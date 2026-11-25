@@ -91,7 +91,11 @@ async function save() {
 
 document.getElementById("export-btn").addEventListener("click", exportData);
 saveBtn.addEventListener("click", save);
-fileInput.addEventListener("change", () => readFile(fileInput.files[0]));
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  fileInput.value = "";
+  readFile(file);
+});
 confirmDelete.addEventListener("change", async () => {
   const settings = await settingsGet();
   settingsSet({ ...settings, confirmDelete: confirmDelete.checked });
@@ -106,6 +110,11 @@ initSettings();
 version.textContent = `バージョン ${chrome.runtime.getManifest().version}`;
 
 dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  fileInput.click();
+});
 dropZone.addEventListener("dragover", (event) => {
   event.preventDefault();
   dropZone.classList.add("dragover");
