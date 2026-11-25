@@ -61,11 +61,6 @@ a {
     background: var(--surface);
 }
 
-.popup-page .container {
-    width: 550px;
-    padding: 14px;
-}
-
 .tab-page,
 .options-page {
     display: flex;
@@ -219,7 +214,9 @@ a {
     font-size: 12px;
 }
 
-.site-favicon {
+.site-favicon,
+.site-option-favicon,
+.favicon {
     width: 16px;
     height: 16px;
     flex-shrink: 0;
@@ -292,13 +289,6 @@ a {
     background: var(--accent-soft);
     color: var(--accent);
     font-weight: 600;
-}
-
-.site-option-favicon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
-    border-radius: 3px;
 }
 
 .site-option-label {
@@ -398,11 +388,7 @@ a {
 }
 
 .favicon {
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
     vertical-align: middle;
-    border-radius: 3px;
 }
 
 .read-mark {

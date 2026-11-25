@@ -109,11 +109,15 @@ async function initSettings() {
 initSettings();
 version.textContent = `バージョン ${chrome.runtime.getManifest().version}`;
 
-dropZone.addEventListener("click", () => fileInput.click());
+function openFilePicker() {
+  fileInput.click();
+}
+
+dropZone.addEventListener("click", openFilePicker);
 dropZone.addEventListener("keydown", (event) => {
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
-  fileInput.click();
+  openFilePicker();
 });
 dropZone.addEventListener("dragover", (event) => {
   event.preventDefault();

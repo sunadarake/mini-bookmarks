@@ -4,8 +4,8 @@ export const SETTINGS_KEY = "MiniBookMark_Settings";
 
 export const PAGE_SIZE = 100;
 
-export const DEFAULT_SETTINGS = { confirmDelete: false, sortMode: "newest" };
-export const DEFAULT_SESSION = {
+const DEFAULT_SETTINGS = { confirmDelete: false, sortMode: "newest" };
+const DEFAULT_SESSION = {
   openedUrls: [],
   lastOpenedUrl: "",
   siteUrl: "",
@@ -45,6 +45,10 @@ export function setBadgeText(items) {
 export function parseHost(url) {
   const result = url.match(/^(https?:\/\/[^/]+)/);
   return result ? result[1] : "";
+}
+
+function faviconUrl(domain) {
+  return `https://www.google.com/s2/favicons?domain=${domain}`;
 }
 
 export function filterItems(items, keyword, siteUrl = "") {
@@ -159,7 +163,7 @@ export function renderItems(
       a.addEventListener("click", () => onOpen(url));
 
       const img = document.createElement("img");
-      img.src = `https://www.google.com/s2/favicons?domain=${hostName}`;
+      img.src = faviconUrl(hostName);
       img.alt = "Favicon";
       img.className = "favicon";
 
@@ -195,8 +199,55 @@ export function renderItems(
     `Total: ${items.length}`;
 }
 
+function renderListView() {
+  document.getElementById("list-view").innerHTML = `
+    <input
+      type="text"
+      id="search"
+      class="search-input"
+      placeholder="記事タイトルを検索..."
+    />
+    <div class="sort-toggle" role="group" aria-label="並び順">
+      <button type="button" id="sort-newest" class="sort-btn active">新しい順</button>
+      <button type="button" id="sort-oldest" class="sort-btn">古い順</button>
+    </div>
+    <div class="site-filter">
+      <div class="site-select-wrap">
+        <button
+          type="button"
+          id="site-select-trigger"
+          class="site-select-trigger"
+          aria-haspopup="listbox"
+          aria-expanded="false"
+        >
+          <img id="site-favicon" class="site-favicon" alt="" hidden />
+          <span id="site-select-label" class="site-select-label">すべてのサイト</span>
+          <span class="site-select-caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="site-select-menu" class="site-select-menu" hidden>
+          <input
+            type="text"
+            id="site-select-search"
+            class="site-select-search"
+            placeholder="サイトを検索..."
+            autocomplete="off"
+          />
+          <ul
+            id="site-select-list"
+            class="site-select-list"
+            role="listbox"
+          ></ul>
+        </div>
+      </div>
+    </div>
+    <ul id="bookmark-list" class="bookmark-list"></ul>
+    <div id="list-sentinel" class="list-sentinel" hidden></div>
+  `;
+}
+
 // popup と フルタブ画面で共通の一覧の初期化。追加は popup だけが使う
 export async function setupListView() {
+  renderListView();
   let [currentItems, session, settings] = await Promise.all([
     storageGet(),
     sessionGet(),
@@ -223,7 +274,7 @@ export async function setupListView() {
     const label = document.getElementById("site-select-label");
     favicon.hidden = !siteUrl;
     if (siteUrl) {
-      favicon.src = `https://www.google.com/s2/favicons?domain=${siteUrl}`;
+      favicon.src = faviconUrl(siteUrl);
       label.textContent = siteUrl;
     } else {
       favicon.removeAttribute("src");
@@ -267,7 +318,7 @@ export async function setupListView() {
       const icon = document.createElement(value ? "img" : "span");
       icon.className = "site-option-favicon";
       if (value) {
-        icon.src = `https://www.google.com/s2/favicons?domain=${value}`;
+        icon.src = faviconUrl(value);
         icon.alt = "";
       }
       option.appendChild(icon);

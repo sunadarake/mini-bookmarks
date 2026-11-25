@@ -4,10 +4,6 @@ async function setBadge() {
   setBadgeText(await storageGet());
 }
 
-chrome.runtime.onStartup.addListener(() => {
-  setBadge();
-});
+chrome.runtime.onStartup.addListener(setBadge);
 
-chrome.runtime.onInstalled.addListener(() => {
-  setBadge();
-});
+chrome.runtime.onInstalled.addListener(setBadge);

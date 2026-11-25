@@ -469,22 +469,9 @@ describe("setupListView のページング", () => {
 
   beforeEach(() => {
     document.body.innerHTML = `
-      <div class="site-select-wrap">
-        <button id="site-select-trigger"></button>
-        <img id="site-favicon" hidden />
-        <span id="site-select-label"></span>
-        <div id="site-select-menu" hidden>
-          <input id="site-select-search" />
-          <ul id="site-select-list"></ul>
-        </div>
-      </div>
       <span id="total-count"></span>
-      <input id="search" />
-      <button id="sort-newest"></button>
-      <button id="sort-oldest"></button>
       <button id="menu-btn"></button>
-      <ul id="bookmark-list"></ul>
-      <div id="list-sentinel" hidden></div>
+      <div id="list-view"></div>
     `;
 
     const items = Array.from({ length: 250 }, (_, i) => ({

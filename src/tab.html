@@ -26,47 +26,7 @@
                 </div>
                 <div class="header-right"></div>
             </div>
-            <input
-                type="text"
-                id="search"
-                class="search-input"
-                placeholder="記事タイトルを検索..."
-            />
-            <div class="sort-toggle" role="group" aria-label="並び順">
-                <button type="button" id="sort-newest" class="sort-btn active">新しい順</button>
-                <button type="button" id="sort-oldest" class="sort-btn">古い順</button>
-            </div>
-            <div class="site-filter">
-                <div class="site-select-wrap">
-                    <button
-                        type="button"
-                        id="site-select-trigger"
-                        class="site-select-trigger"
-                        aria-haspopup="listbox"
-                        aria-expanded="false"
-                    >
-                        <img id="site-favicon" class="site-favicon" alt="" hidden />
-                        <span id="site-select-label" class="site-select-label">すべてのサイト</span>
-                        <span class="site-select-caret" aria-hidden="true">▾</span>
-                    </button>
-                    <div id="site-select-menu" class="site-select-menu" hidden>
-                        <input
-                            type="text"
-                            id="site-select-search"
-                            class="site-select-search"
-                            placeholder="サイトを検索..."
-                            autocomplete="off"
-                        />
-                        <ul
-                            id="site-select-list"
-                            class="site-select-list"
-                            role="listbox"
-                        ></ul>
-                    </div>
-                </div>
-            </div>
-            <ul id="bookmark-list" class="bookmark-list"></ul>
-            <div id="list-sentinel" class="list-sentinel" hidden></div>
+            <div id="list-view"></div>
         </div>
         <script type="module" src="tab.js"></script>
     </body>
