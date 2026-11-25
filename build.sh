@@ -13,7 +13,7 @@ VERSION=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' manifest.json | head -1)
 ZIP_NAME="mini-bookmarks-v${VERSION}.zip"
 
 # テストが通らない状態で配布物を作らない
-npm test
+pnpm test
 
 mkdir -p dist
 rm -f dist/mini-bookmarks-v*.zip

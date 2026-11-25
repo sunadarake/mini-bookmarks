@@ -18,6 +18,9 @@ https://chrome.google.com/webstore/detail/mini-bookmarks/lipgpfampommaphglnnnjjo
 git clone <このリポジトリの URL>
 cd mini-bookmarks
 
+# テスト用の依存関係をインストールする
+pnpm install
+
 # Chrome で chrome://extensions を開き、デベロッパーモードを有効にする
 # 「パッケージ化されていない拡張機能を読み込む」でこのディレクトリを選ぶ
 
