@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  PAGE_SIZE,
   SESSION_KEY,
   SETTINGS_KEY,
   STORAGE_KEY,
@@ -19,6 +20,7 @@ import {
   setBadgeText,
   settingsGet,
   settingsSet,
+  setupListView,
   storageGet,
   storageSet,
 } from "../src/lib.js";
@@ -416,6 +418,130 @@ describe("renderItems", () => {
     document.querySelector(".delete-btn").click();
     expect(handlers.onOpen).toHaveBeenCalledWith("https://a.com/");
     expect(handlers.onDelete).toHaveBeenCalledWith("https://a.com/");
+  });
+
+  it("limit 件だけ描画し、残りがあればセンチネルを表示する", () => {
+    document.body.innerHTML =
+      '<span id="total-count"></span><ul id="bookmark-list"></ul><div id="list-sentinel" hidden></div>';
+    const items = [
+      { url: "https://a.com/", hostName: "https://a.com" },
+      { url: "https://b.com/", hostName: "https://b.com" },
+      { url: "https://c.com/", hostName: "https://c.com" },
+    ];
+    renderItems(items, "", handlers, undefined, "", 2);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(2);
+    expect(document.getElementById("total-count").textContent).toBe("Total: 3");
+    expect(document.getElementById("list-sentinel").hidden).toBe(false);
+  });
+
+  it("limit が総数以上ならセンチネルを隠す", () => {
+    document.body.innerHTML =
+      '<span id="total-count"></span><ul id="bookmark-list"></ul><div id="list-sentinel" hidden></div>';
+    const items = [{ url: "https://a.com/", hostName: "https://a.com" }];
+    renderItems(items, "", handlers, undefined, "", 1);
+    expect(document.getElementById("list-sentinel").hidden).toBe(true);
+  });
+});
+
+describe("setupListView のページング", () => {
+  let observerCallback;
+  let observed;
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div class="site-select-wrap">
+        <button id="site-select-trigger"></button>
+        <img id="site-favicon" hidden />
+        <span id="site-select-label"></span>
+        <div id="site-select-menu" hidden>
+          <input id="site-select-search" />
+          <ul id="site-select-list"></ul>
+        </div>
+      </div>
+      <span id="total-count"></span>
+      <input id="search" />
+      <button id="sort-newest"></button>
+      <button id="sort-oldest"></button>
+      <button id="menu-btn"></button>
+      <ul id="bookmark-list"></ul>
+      <div id="list-sentinel" hidden></div>
+    `;
+
+    const items = Array.from({ length: 250 }, (_, i) => ({
+      url: `https://example.com/${i}`,
+      hostName: "https://example.com",
+      rootUrl: "https://example.com",
+      title: `article ${i}`,
+      createdAt: i,
+    }));
+    const local = {
+      get: vi.fn((key) =>
+        Promise.resolve(key === STORAGE_KEY ? { [STORAGE_KEY]: items } : {}),
+      ),
+      set: vi.fn(),
+    };
+    const session = { get: vi.fn().mockResolvedValue({}), set: vi.fn() };
+    vi.stubGlobal("chrome", {
+      storage: { local, session },
+      action: { setBadgeText: vi.fn() },
+      runtime: { openOptionsPage: vi.fn() },
+    });
+
+    class MockIntersectionObserver {
+      constructor(callback) {
+        observerCallback = callback;
+      }
+      observe(element) {
+        observed = element;
+      }
+    }
+    vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("最初は 100 件を描画し、スクロールで 100 件ずつ追加する", async () => {
+    await setupListView();
+    expect(observed).toBe(document.getElementById("list-sentinel"));
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(
+      PAGE_SIZE,
+    );
+    expect(document.getElementById("total-count").textContent).toBe("Total: 250");
+    expect(document.getElementById("list-sentinel").hidden).toBe(false);
+
+    observerCallback([{ isIntersecting: true }]);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(
+      PAGE_SIZE * 2,
+    );
+
+    observerCallback([{ isIntersecting: true }]);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(250);
+    expect(document.getElementById("list-sentinel").hidden).toBe(true);
+  });
+
+  it("検索を変えると最初の 100 件に戻す", async () => {
+    await setupListView();
+    observerCallback([{ isIntersecting: true }]);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(
+      PAGE_SIZE * 2,
+    );
+
+    const search = document.getElementById("search");
+    search.value = "article";
+    search.dispatchEvent(new Event("input"));
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(
+      PAGE_SIZE,
+    );
+  });
+
+  it("交差していない通知では追加読み込みしない", async () => {
+    await setupListView();
+    observerCallback([{ isIntersecting: false }]);
+    expect(document.querySelectorAll(".bookmark-item")).toHaveLength(
+      PAGE_SIZE,
+    );
   });
 });
 

@@ -206,6 +206,10 @@ body {
     list-style: none;
 }
 
+.list-sentinel {
+    height: 1px;
+}
+
 .bookmark-item {
     display: flex;
     justify-content: space-between;

@@ -2,6 +2,8 @@ export const STORAGE_KEY = "MiniBookMark_Items";
 export const SESSION_KEY = "MiniBookMark_Session";
 export const SETTINGS_KEY = "MiniBookMark_Settings";
 
+export const PAGE_SIZE = 100;
+
 export const DEFAULT_SETTINGS = { confirmDelete: false, sortMode: "newest" };
 export const DEFAULT_SESSION = {
   openedUrls: [],
@@ -131,11 +133,13 @@ export function renderItems(
   { onOpen, onDelete },
   session = DEFAULT_SESSION,
   siteUrl = "",
+  limit = Infinity,
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
 
-  filterItems(items, keyword, siteUrl).forEach(
+  const filtered = filterItems(items, keyword, siteUrl);
+  filtered.slice(0, limit).forEach(
     ({ url, hostName, title }) => {
       const li = document.createElement("li");
       li.className = "bookmark-item";
@@ -174,6 +178,9 @@ export function renderItems(
     },
   );
 
+  const sentinel = document.getElementById("list-sentinel");
+  if (sentinel) sentinel.hidden = filtered.length <= limit;
+
   document.getElementById("total-count").textContent =
     `Total: ${items.length}`;
 }
@@ -188,6 +195,7 @@ export async function setupListView() {
   let sortMode = settings.sortMode === "oldest" ? "oldest" : "newest";
   let siteUrl = session.siteUrl;
   let siteSearch = "";
+  let visibleCount = PAGE_SIZE;
 
   const normalized = normalizeItems(currentItems);
   if (normalized.some((it, i) => it !== currentItems[i])) {
@@ -286,13 +294,15 @@ export async function setupListView() {
     },
   };
 
-  function render() {
+  function render(reset = false) {
+    if (reset) visibleCount = PAGE_SIZE;
     renderItems(
       sortItems(currentItems, sortMode),
       document.getElementById("search").value,
       handlers,
       session,
       siteUrl,
+      visibleCount,
     );
   }
 
@@ -310,10 +320,12 @@ export async function setupListView() {
     settings = { ...settings, sortMode };
     settingsSet(settings);
     updateSortButtons();
-    render();
+    render(true);
   }
 
-  document.getElementById("search").addEventListener("input", render);
+  document
+    .getElementById("search")
+    .addEventListener("input", () => render(true));
   const siteTrigger = document.getElementById("site-select-trigger");
   const siteMenu = document.getElementById("site-select-menu");
   const siteSearchInput = document.getElementById("site-select-search");
@@ -340,7 +352,7 @@ export async function setupListView() {
     saveSiteFilter();
     renderSiteOptions();
     setMenuOpen(false);
-    render();
+    render(true);
   });
   document.addEventListener("click", (e) => {
     if (!e.target.closest(".site-select-wrap")) setMenuOpen(false);
@@ -357,6 +369,15 @@ export async function setupListView() {
   document
     .getElementById("menu-btn")
     .addEventListener("click", () => chrome.runtime.openOptionsPage());
+
+  new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      visibleCount += PAGE_SIZE;
+      render();
+    },
+    { rootMargin: "200px" },
+  ).observe(document.getElementById("list-sentinel"));
 
   updateSortButtons();
   renderSiteOptions();
