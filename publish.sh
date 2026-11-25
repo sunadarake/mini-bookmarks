@@ -1,5 +1,5 @@
 #!/bin/bash
-# build.sh で zip を作り、概要とインストール方法を書いた RELEASE.md を生成する。
+# build.sh で zip を作り、概要とインストール方法を書いたリリースノートを組み立てる。
 # それを本文にして GitHub CLI で公開リリースを作成し、以前のリリースとタグを削除する。
 set -euo pipefail
 
@@ -31,7 +31,7 @@ DRAFT_TAGS=$(gh release list --limit 100 --json tagName,isDraft --jq ".[] | sele
 
 ./build.sh
 
-cat > RELEASE.md <<NOTES
+NOTES=$(cat <<NOTES
 # ${TAG}
 
 あとで読む記事を保存し、タイトルで検索できる Chrome 拡張機能です。
@@ -42,11 +42,12 @@ cat > RELEASE.md <<NOTES
 - Chrome ウェブストア: https://chrome.google.com/webstore/detail/mini-bookmarks/lipgpfampommaphglnnnjjojidmkdlkn
 - zip から入れる場合: 添付の zip を展開し、\`chrome://extensions\` でデベロッパーモードを有効にして「パッケージ化されていない拡張機能を読み込む」から展開したフォルダを選ぶ
 NOTES
+)
 
 # 公開リリースとして作成する。タグは HEAD のコミットへ作られる
 gh release create "$TAG" "$ZIP" \
   --title "$TAG" \
-  --notes-file RELEASE.md \
+  --notes "$NOTES" \
   --target "$(git rev-parse HEAD)"
 
 delete_release() {
