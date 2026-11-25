@@ -82,37 +82,28 @@ describe("filterItems", () => {
       { url: "chrome://extensions", rootUrl: "", title: "settings" },
     ];
 
-    it("siteKeyword は rootUrl の部分一致で絞り込む", () => {
-      expect(filterItems(sites, "", false, "a.com").map((it) => it.url)).toEqual(
-        ["https://a.com/1", "https://a.com/2"],
-      );
-    });
-
     it("siteUrl は rootUrl の完全一致で絞り込む", () => {
       expect(
-        filterItems(sites, "", false, "", "https://b.com").map((it) => it.url),
+        filterItems(sites, "", false, "https://b.com").map((it) => it.url),
       ).toEqual(["https://b.com/1"]);
     });
 
     it("siteUrl は部分一致では一致しない", () => {
-      expect(filterItems(sites, "", false, "", "a.com")).toEqual([]);
+      expect(filterItems(sites, "", false, "a.com")).toEqual([]);
     });
 
     it("タイトル検索・お気に入りとは AND で絞り込む", () => {
       expect(
-        filterItems(sites, "apple", false, "", "https://a.com").map(
+        filterItems(sites, "apple", false, "https://a.com").map(
           (it) => it.url,
         ),
       ).toEqual(["https://a.com/1"]);
-      expect(
-        filterItems(sites, "", true, "", "https://a.com"),
-      ).toEqual([]);
+      expect(filterItems(sites, "", true, "https://a.com")).toEqual([]);
     });
 
     it("rootUrl が無い項目はサイト条件で除外され、条件なしでは含まれる", () => {
       const missing = [{ url: "chrome://extensions", title: "x" }];
-      expect(filterItems(missing, "", false, "a.com")).toEqual([]);
-      expect(filterItems(missing, "", false, "", "https://a.com")).toEqual([]);
+      expect(filterItems(missing, "", false, "https://a.com")).toEqual([]);
       expect(filterItems(missing, "")).toEqual(missing);
     });
   });
@@ -305,13 +296,11 @@ describe("removeItem / markOpened", () => {
     const session = {
       openedUrls: [],
       lastOpenedUrl: "",
-      siteKeyword: "example",
       siteUrl: "https://example.com",
     };
     expect(markOpened(session, "https://example.com/1")).toEqual({
       openedUrls: ["https://example.com/1"],
       lastOpenedUrl: "https://example.com/1",
-      siteKeyword: "example",
       siteUrl: "https://example.com",
     });
   });
@@ -353,7 +342,6 @@ describe("chrome API を使う関数", () => {
     expect(await sessionGet()).toEqual({
       openedUrls: [],
       lastOpenedUrl: "",
-      siteKeyword: "",
       siteUrl: "",
     });
     expect(session.get).toHaveBeenCalledWith(SESSION_KEY);
@@ -365,7 +353,6 @@ describe("chrome API を使う関数", () => {
     expect(await sessionGet()).toEqual({
       openedUrls: ["a"],
       lastOpenedUrl: "a",
-      siteKeyword: "",
       siteUrl: "",
     });
   });
@@ -374,7 +361,6 @@ describe("chrome API を使う関数", () => {
     const saved = {
       openedUrls: [],
       lastOpenedUrl: "",
-      siteKeyword: "example",
       siteUrl: "https://example.com",
     };
     session.get.mockResolvedValue({ [SESSION_KEY]: saved });

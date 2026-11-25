@@ -33,12 +33,12 @@
 
 ## 仕様・注意点
 - データは `chrome.storage.local` のキー `MiniBookMark_Items` に配列で保存する。要素は `{ url, hostName, rootUrl, title, createdAt }`（お気に入りは `favorite: true` を付与）。`rootUrl` はサイトのオリジン（`parseHost` の結果、`hostName` と同値）、`createdAt` は追加日時のミリ秒。既存項目は一覧の初回読み込み時に欠損分を補完する。キー名は `lib.js` の `STORAGE_KEY` で定義する
-- 既読と直前に開いた URL は `chrome.storage.session` のキー `MiniBookMark_Session` に `{ openedUrls, lastOpenedUrl, siteKeyword, siteUrl }` で保存する。`storage.local` には保存せず、ブラウザ終了で消える。`siteKeyword` / `siteUrl` はサイト絞り込みの状態で、再び開いたときに復元する。キー名は `SESSION_KEY` で定義する
+- 既読と直前に開いた URL は `chrome.storage.session` のキー `MiniBookMark_Session` に `{ openedUrls, lastOpenedUrl, siteUrl }` で保存する。`storage.local` には保存せず、ブラウザ終了で消える。`siteUrl` はサイト絞り込みの状態で、再び開いたときに復元する。キー名は `SESSION_KEY` で定義する
 - 設定は `chrome.storage.local` のキー `MiniBookMark_Settings` に `{ confirmDelete, sortMode }` で保存する。既定は `confirmDelete: false`（確認なしで削除）、`sortMode: "newest"`（新しい順、他は `"oldest"`）。キー名は `SETTINGS_KEY` で定義する。オプションで ON にすると popup / フルタブ画面の削除時に `window.confirm()` を出し、設定はエクスポート/インポート対象外
 - 同じ URL を追加した場合は古い項目を消して先頭に入れ直す（仕様としてテストで固定している）
 - リンクをクリックすると既読になる。直前に開いた1件は `last-opened` クラスで薄いグレー背景にして強調する
 - 星ボタンでお気に入り（`favorite`）を切り替える。popup / フルタブ画面の「すべて」「お気に入り」で一覧を切り替えられ、検索と併用できる
-- サイト絞り込みは、`site-search` 入力で `rootUrl` の部分一致、`site-select`（カスタムドロップダウン）で `rootUrl` の完全一致を行う。両方とタイトル検索・お気に入りは AND で併用する。選択肢は保存済み `rootUrl` の重複なし昇順リストで、先頭の「すべてのサイト」で解除する。各選択肢と選択中の表示に favicon を付ける。`rootUrl` が空の項目はサイト条件では表示されないが、「すべてのサイト」では表示する。絞り込み状態はセッションに保存し、ブラウザを閉じるまで維持する
+- サイト絞り込みは `site-select`（カスタムドロップダウン）の完全一致のみで、タイトル検索・お気に入りと AND で併用する。ドロップダウン内の検索窓で `rootUrl` の部分一致により候補を絞り込める（検索窓は開くたびにリセット）。候補は保存済み `rootUrl` の重複なし昇順リストで、先頭の「すべてのサイト」で解除する。検索語に一致する候補が無ければ「該当するサイトがありません」を表示する。各候補と選択中の表示に favicon を付ける。`rootUrl` が空の項目はサイト条件では表示されないが、「すべてのサイト」では表示する。絞り込み状態はセッションに保存し、ブラウザを閉じるまで維持する
 - 並び順は「新しい順」「古い順」の toggle ボタンで切り替えられる（`sortItems`）。`createdAt` 基準で、選択中のボタンに `active` を付けて現在の状態を示す。選択は設定に保存し、popup / フルタブ画面の両方に適用する
 - 項目の追加・削除のたびにバッジ（件数）を更新する
 - `popup.js` / `tab.js` / `background.js` / `options.js` は `type="module"` で `lib.js` を import する。トップレベル await は ES2022 のため使わない

@@ -34,12 +34,6 @@
                 <button type="button" id="sort-oldest" class="sort-btn">古い順</button>
             </div>
             <div class="site-filter">
-                <input
-                    type="text"
-                    id="site-search"
-                    class="search-input"
-                    placeholder="Site..."
-                />
                 <div class="site-select-wrap">
                     <button
                         type="button"
@@ -52,7 +46,20 @@
                         <span id="site-select-label" class="site-select-label">すべてのサイト</span>
                         <span class="site-select-caret" aria-hidden="true">▾</span>
                     </button>
-                    <ul id="site-select-menu" class="site-select-menu" role="listbox" hidden></ul>
+                    <div id="site-select-menu" class="site-select-menu" hidden>
+                        <input
+                            type="text"
+                            id="site-select-search"
+                            class="site-select-search"
+                            placeholder="サイトを検索..."
+                            autocomplete="off"
+                        />
+                        <ul
+                            id="site-select-list"
+                            class="site-select-list"
+                            role="listbox"
+                        ></ul>
+                    </div>
                 </div>
             </div>
             <ul id="bookmark-list" class="bookmark-list"></ul>

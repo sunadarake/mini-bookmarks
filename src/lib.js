@@ -6,7 +6,6 @@ export const DEFAULT_SETTINGS = { confirmDelete: false, sortMode: "newest" };
 export const DEFAULT_SESSION = {
   openedUrls: [],
   lastOpenedUrl: "",
-  siteKeyword: "",
   siteUrl: "",
 };
 
@@ -50,16 +49,11 @@ export function filterItems(
   items,
   keyword,
   favoritesOnly = false,
-  siteKeyword = "",
   siteUrl = "",
 ) {
-  const siteNeedle = siteKeyword.toLowerCase();
   return items.filter((it) => {
     if (favoritesOnly && !it.favorite) return false;
     if (siteUrl && it.rootUrl !== siteUrl) return false;
-    if (siteNeedle && !(it.rootUrl || "").toLowerCase().includes(siteNeedle)) {
-      return false;
-    }
     if (!keyword) return true;
     return (it.title || "").toLowerCase().includes(keyword.toLowerCase());
   });
@@ -149,13 +143,12 @@ export function renderItems(
   { onOpen, onDelete, onToggleFavorite },
   favoritesOnly = false,
   session = DEFAULT_SESSION,
-  siteKeyword = "",
   siteUrl = "",
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
 
-  filterItems(items, keyword, favoritesOnly, siteKeyword, siteUrl).forEach(
+  filterItems(items, keyword, favoritesOnly, siteUrl).forEach(
     ({ url, hostName, title, favorite }) => {
       const li = document.createElement("li");
       li.className = "bookmark-item";
@@ -213,8 +206,8 @@ export async function setupListView() {
   ]);
   let favoritesOnly = false;
   let sortMode = settings.sortMode === "oldest" ? "oldest" : "newest";
-  let siteKeyword = session.siteKeyword;
   let siteUrl = session.siteUrl;
+  let siteSearch = "";
 
   const normalized = normalizeItems(currentItems);
   if (normalized.some((it, i) => it !== currentItems[i])) {
@@ -223,7 +216,7 @@ export async function setupListView() {
   }
 
   function saveSiteFilter() {
-    session = { ...session, siteKeyword, siteUrl };
+    session = { ...session, siteUrl };
     sessionSet(session);
   }
 
@@ -241,7 +234,7 @@ export async function setupListView() {
   }
 
   function renderSiteOptions() {
-    const menu = document.getElementById("site-select-menu");
+    const list = document.getElementById("site-select-list");
     const sites = [
       ...new Set(currentItems.map((it) => it.rootUrl).filter(Boolean)),
     ].sort((a, b) => a.localeCompare(b, "ja"));
@@ -251,31 +244,43 @@ export async function setupListView() {
       saveSiteFilter();
     }
 
-    menu.innerHTML = "";
-    [{ value: "", label: "すべてのサイト" }]
+    const needle = siteSearch.toLowerCase();
+    const options = [{ value: "", label: "すべてのサイト" }]
       .concat(sites.map((site) => ({ value: site, label: site })))
-      .forEach(({ value, label }) => {
-        const option = document.createElement("li");
-        option.className = "site-option";
-        option.setAttribute("role", "option");
-        option.dataset.value = value;
-        option.setAttribute("aria-selected", String(value === siteUrl));
+      .filter(({ label }) => label.toLowerCase().includes(needle));
 
-        const icon = document.createElement(value ? "img" : "span");
-        icon.className = "site-option-favicon";
-        if (value) {
-          icon.src = `https://www.google.com/s2/favicons?domain=${value}`;
-          icon.alt = "";
-        }
-        option.appendChild(icon);
+    list.innerHTML = "";
+    if (options.length === 0) {
+      const empty = document.createElement("li");
+      empty.className = "site-empty";
+      empty.textContent = "該当するサイトがありません";
+      list.appendChild(empty);
+      updateSiteTrigger();
+      return;
+    }
 
-        const text = document.createElement("span");
-        text.className = "site-option-label";
-        text.textContent = label;
-        option.appendChild(text);
+    options.forEach(({ value, label }) => {
+      const option = document.createElement("li");
+      option.className = "site-option";
+      option.setAttribute("role", "option");
+      option.dataset.value = value;
+      option.setAttribute("aria-selected", String(value === siteUrl));
 
-        menu.appendChild(option);
-      });
+      const icon = document.createElement(value ? "img" : "span");
+      icon.className = "site-option-favicon";
+      if (value) {
+        icon.src = `https://www.google.com/s2/favicons?domain=${value}`;
+        icon.alt = "";
+      }
+      option.appendChild(icon);
+
+      const text = document.createElement("span");
+      text.className = "site-option-label";
+      text.textContent = label;
+      option.appendChild(text);
+
+      list.appendChild(option);
+    });
 
     updateSiteTrigger();
   }
@@ -314,7 +319,6 @@ export async function setupListView() {
       handlers,
       favoritesOnly,
       session,
-      siteKeyword,
       siteUrl,
     );
   }
@@ -348,20 +352,24 @@ export async function setupListView() {
   }
 
   document.getElementById("search").addEventListener("input", render);
-  document.getElementById("site-search").value = siteKeyword;
-  document.getElementById("site-search").addEventListener("input", (e) => {
-    siteKeyword = e.target.value;
-    saveSiteFilter();
-    render();
-  });
   const siteTrigger = document.getElementById("site-select-trigger");
   const siteMenu = document.getElementById("site-select-menu");
+  const siteSearchInput = document.getElementById("site-select-search");
 
   function setMenuOpen(open) {
+    if (open) {
+      siteSearch = "";
+      siteSearchInput.value = "";
+      renderSiteOptions();
+    }
     siteMenu.hidden = !open;
     siteTrigger.setAttribute("aria-expanded", String(open));
   }
 
+  siteSearchInput.addEventListener("input", (e) => {
+    siteSearch = e.target.value;
+    renderSiteOptions();
+  });
   siteTrigger.addEventListener("click", () => setMenuOpen(siteMenu.hidden));
   siteMenu.addEventListener("click", (e) => {
     const option = e.target.closest(".site-option");

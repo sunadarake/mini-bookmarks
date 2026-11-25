@@ -63,21 +63,12 @@ body {
 
 .site-filter {
     display: flex;
-    gap: 6px;
     margin-bottom: 12px;
-}
-
-.site-filter .search-input {
-    flex: 1;
-    min-width: 0;
-    width: auto;
-    margin: 0;
 }
 
 .site-select-wrap {
     position: relative;
-    width: 45%;
-    flex-shrink: 0;
+    width: 100%;
 }
 
 .site-select-trigger {
@@ -121,10 +112,8 @@ body {
     left: 0;
     right: 0;
     z-index: 10;
-    max-height: 240px;
-    padding: 4px 0;
-    overflow-y: auto;
-    list-style: none;
+    display: flex;
+    flex-direction: column;
     background: #fff;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -133,6 +122,27 @@ body {
 
 .site-select-menu[hidden] {
     display: none;
+}
+
+.site-select-search {
+    margin: 6px;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.site-select-list {
+    max-height: 220px;
+    padding: 4px 0;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.site-empty {
+    padding: 8px 10px;
+    color: #888;
+    font-size: 13px;
 }
 
 .site-option {
