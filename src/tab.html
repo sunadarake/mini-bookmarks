@@ -29,13 +29,10 @@
                 class="search-input"
                 placeholder="Search..."
             />
-            <select id="sort-select" class="sort-select">
-                <option value="newest">新しい順</option>
-                <option value="oldest">古い順</option>
-                <option value="title">タイトル順</option>
-                <option value="site">サイト順</option>
-                <option value="manual">手動順</option>
-            </select>
+            <div class="sort-toggle" role="group" aria-label="並び順">
+                <button type="button" id="sort-newest" class="sort-btn active">新しい順</button>
+                <button type="button" id="sort-oldest" class="sort-btn">古い順</button>
+            </div>
             <div class="site-filter">
                 <input
                     type="text"
@@ -43,7 +40,20 @@
                     class="search-input"
                     placeholder="Site..."
                 />
-                <select id="site-select" class="site-select"></select>
+                <div class="site-select-wrap">
+                    <button
+                        type="button"
+                        id="site-select-trigger"
+                        class="site-select-trigger"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                    >
+                        <img id="site-favicon" class="site-favicon" alt="" hidden />
+                        <span id="site-select-label" class="site-select-label">すべてのサイト</span>
+                        <span class="site-select-caret" aria-hidden="true">▾</span>
+                    </button>
+                    <ul id="site-select-menu" class="site-select-menu" role="listbox" hidden></ul>
+                </div>
             </div>
             <ul id="bookmark-list" class="bookmark-list"></ul>
         </div>

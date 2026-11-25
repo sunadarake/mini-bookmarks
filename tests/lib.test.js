@@ -9,7 +9,6 @@ import {
   filterItems,
   markOpened,
   mergeItems,
-  moveItem,
   normalizeItems,
   sortItems,
   toggleFavorite,
@@ -228,27 +227,12 @@ describe("sortItems", () => {
     ]);
   });
 
-  it("title はタイトルの昇順で、タイトル無しは URL を使う", () => {
-    const withNoTitle = [
-      { url: "https://x.com/", title: "zzz" },
-      { url: "https://a.com/" },
-    ];
-    expect(sortItems(withNoTitle, "title").map((it) => it.url)).toEqual([
-      "https://a.com/",
-      "https://x.com/",
-    ]);
-  });
-
-  it("site は hostName の昇順", () => {
-    expect(sortItems(items, "site").map((it) => it.url)).toEqual([
-      "https://a.com/",
-      "https://b.com/",
+  it("newest / oldest 以外は新しい順として扱う", () => {
+    expect(sortItems(items, "unknown").map((it) => it.url)).toEqual([
       "https://c.com/",
+      "https://b.com/",
+      "https://a.com/",
     ]);
-  });
-
-  it("manual は元の配列順を維持する", () => {
-    expect(sortItems(items, "manual")).toEqual(items);
   });
 
   it("元の配列を変更しない", () => {
@@ -284,40 +268,6 @@ describe("toggleFavorite", () => {
   });
 });
 
-describe("moveItem", () => {
-  const items = [{ url: "a" }, { url: "b" }, { url: "c" }];
-
-  it("前の項目を後ろの位置へ移す", () => {
-    expect(moveItem(items, "a", "c").map((it) => it.url)).toEqual([
-      "b",
-      "c",
-      "a",
-    ]);
-  });
-
-  it("後ろの項目を前の位置へ移す", () => {
-    expect(moveItem(items, "c", "a").map((it) => it.url)).toEqual([
-      "c",
-      "a",
-      "b",
-    ]);
-  });
-
-  it("存在しない URL を渡しても変化しない", () => {
-    expect(moveItem(items, "x", "a")).toEqual(items);
-    expect(moveItem(items, "a", "x")).toEqual(items);
-  });
-
-  it("同じ URL なら変化しない", () => {
-    expect(moveItem(items, "b", "b")).toEqual(items);
-  });
-
-  it("元の配列を変更しない", () => {
-    moveItem(items, "a", "c");
-    expect(items.map((it) => it.url)).toEqual(["a", "b", "c"]);
-  });
-});
-
 describe("removeItem / markOpened", () => {
   const items = [{ url: "a" }, { url: "b" }];
 
@@ -349,6 +299,21 @@ describe("removeItem / markOpened", () => {
     const session = { openedUrls: ["a"], lastOpenedUrl: "a" };
     markOpened(session, "b");
     expect(session).toEqual({ openedUrls: ["a"], lastOpenedUrl: "a" });
+  });
+
+  it("markOpened はサイト絞り込みの状態を保持する", () => {
+    const session = {
+      openedUrls: [],
+      lastOpenedUrl: "",
+      siteKeyword: "example",
+      siteUrl: "https://example.com",
+    };
+    expect(markOpened(session, "https://example.com/1")).toEqual({
+      openedUrls: ["https://example.com/1"],
+      lastOpenedUrl: "https://example.com/1",
+      siteKeyword: "example",
+      siteUrl: "https://example.com",
+    });
   });
 });
 
@@ -385,12 +350,33 @@ describe("chrome API を使う関数", () => {
 
   it("sessionGet は未保存なら初期状態を返す", async () => {
     session.get.mockResolvedValue({});
-    expect(await sessionGet()).toEqual({ openedUrls: [], lastOpenedUrl: "" });
+    expect(await sessionGet()).toEqual({
+      openedUrls: [],
+      lastOpenedUrl: "",
+      siteKeyword: "",
+      siteUrl: "",
+    });
     expect(session.get).toHaveBeenCalledWith(SESSION_KEY);
   });
 
-  it("sessionGet は保存済みのセッションを返す", async () => {
+  it("sessionGet は保存値にサイト絞り込みの既定値をマージして返す", async () => {
     const saved = { openedUrls: ["a"], lastOpenedUrl: "a" };
+    session.get.mockResolvedValue({ [SESSION_KEY]: saved });
+    expect(await sessionGet()).toEqual({
+      openedUrls: ["a"],
+      lastOpenedUrl: "a",
+      siteKeyword: "",
+      siteUrl: "",
+    });
+  });
+
+  it("sessionGet は保存済みのサイト絞り込みを返す", async () => {
+    const saved = {
+      openedUrls: [],
+      lastOpenedUrl: "",
+      siteKeyword: "example",
+      siteUrl: "https://example.com",
+    };
     session.get.mockResolvedValue({ [SESSION_KEY]: saved });
     expect(await sessionGet()).toEqual(saved);
   });

@@ -3,7 +3,12 @@ export const SESSION_KEY = "MiniBookMark_Session";
 export const SETTINGS_KEY = "MiniBookMark_Settings";
 
 export const DEFAULT_SETTINGS = { confirmDelete: false, sortMode: "newest" };
-export const DEFAULT_SESSION = { openedUrls: [], lastOpenedUrl: "" };
+export const DEFAULT_SESSION = {
+  openedUrls: [],
+  lastOpenedUrl: "",
+  siteKeyword: "",
+  siteUrl: "",
+};
 
 export async function storageGet() {
   const data = await chrome.storage.local.get(STORAGE_KEY);
@@ -16,7 +21,7 @@ export function storageSet(items) {
 
 export async function sessionGet() {
   const data = await chrome.storage.session.get(SESSION_KEY);
-  return data[SESSION_KEY] || DEFAULT_SESSION;
+  return { ...DEFAULT_SESSION, ...data[SESSION_KEY] };
 }
 
 export function sessionSet(session) {
@@ -82,19 +87,9 @@ export function normalizeItems(items, now = Date.now()) {
 }
 
 export function sortItems(items, mode) {
-  if (mode === "manual") return [...items];
-
   const result = [...items];
   if (mode === "oldest") {
     result.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  } else if (mode === "title") {
-    result.sort((a, b) =>
-      (a.title || a.url || "").localeCompare(b.title || b.url || "", "ja"),
-    );
-  } else if (mode === "site") {
-    result.sort((a, b) =>
-      (a.hostName || "").localeCompare(b.hostName || "", "ja"),
-    );
   } else {
     result.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }
@@ -105,23 +100,11 @@ export function removeItem(items, url) {
   return items.filter((it) => it.url !== url);
 }
 
-export function moveItem(items, fromUrl, toUrl) {
-  const fromIndex = items.findIndex((it) => it.url === fromUrl);
-  const toIndex = items.findIndex((it) => it.url === toUrl);
-  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
-    return [...items];
-  }
-  const result = [...items];
-  const [moved] = result.splice(fromIndex, 1);
-  result.splice(toIndex, 0, moved);
-  return result;
-}
-
 export function markOpened(session, url) {
   const openedUrls = session.openedUrls.includes(url)
     ? session.openedUrls
     : [...session.openedUrls, url];
-  return { openedUrls, lastOpenedUrl: url };
+  return { ...session, openedUrls, lastOpenedUrl: url };
 }
 
 export function toggleFavorite(items, url) {
@@ -160,64 +143,17 @@ export function mergeItems(existing, imported) {
   ];
 }
 
-// ドラッグ中の URL と、ドラッグ直後かどうかは drag に持たせてリンクのクリックと共有する
-function enableDrag(li, url, list, onReorder, drag) {
-  li.draggable = true;
-  li.addEventListener("dragstart", (e) => {
-    drag.url = url;
-    drag.recently = true;
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", url);
-    li.classList.add("dragging");
-  });
-  li.addEventListener("dragover", (e) => {
-    if (drag.url === null || drag.url === url) return;
-    e.preventDefault();
-    li.classList.add("drag-over");
-  });
-  li.addEventListener("dragleave", () => {
-    li.classList.remove("drag-over");
-  });
-  li.addEventListener("drop", (e) => {
-    e.preventDefault();
-    li.classList.remove("drag-over");
-    if (drag.url !== null && drag.url !== url) {
-      onReorder(drag.url, url);
-    }
-    drag.url = null;
-  });
-  li.addEventListener("dragend", () => {
-    li.classList.remove("dragging");
-    drag.url = null;
-    list
-      .querySelectorAll(".drag-over")
-      .forEach((el) => el.classList.remove("drag-over"));
-    setTimeout(() => {
-      drag.recently = false;
-    }, 0);
-  });
-}
-
 export function renderItems(
   items,
   keyword,
-  { onOpen, onDelete, onToggleFavorite, onReorder },
+  { onOpen, onDelete, onToggleFavorite },
   favoritesOnly = false,
   session = DEFAULT_SESSION,
-  sortMode = "newest",
   siteKeyword = "",
   siteUrl = "",
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
-
-  const canReorder =
-    sortMode === "manual" &&
-    !keyword &&
-    !favoritesOnly &&
-    !siteKeyword &&
-    !siteUrl;
-  const drag = { url: null, recently: false };
 
   filterItems(items, keyword, favoritesOnly, siteKeyword, siteUrl).forEach(
     ({ url, hostName, title, favorite }) => {
@@ -225,10 +161,6 @@ export function renderItems(
       li.className = "bookmark-item";
       if (session.lastOpenedUrl === url) {
         li.classList.add("last-opened");
-      }
-
-      if (canReorder) {
-        enableDrag(li, url, list, onReorder, drag);
       }
 
       const readMark = document.createElement("span");
@@ -240,15 +172,7 @@ export function renderItems(
       a.target = "_blank";
       a.rel = "noopener noreferrer";
       a.className = "bookmark-link";
-      a.addEventListener("click", (e) => {
-        // ドラッグ直後のクリックで既読・新規タブが走るのを防ぐ
-        if (drag.recently) {
-          e.preventDefault();
-          drag.recently = false;
-          return;
-        }
-        onOpen(url);
-      });
+      a.addEventListener("click", () => onOpen(url));
 
       const img = document.createElement("img");
       img.src = `https://www.google.com/s2/favicons?domain=${hostName}`;
@@ -288,9 +212,9 @@ export async function setupListView() {
     settingsGet(),
   ]);
   let favoritesOnly = false;
-  let sortMode = settings.sortMode;
-  let siteKeyword = "";
-  let siteUrl = "";
+  let sortMode = settings.sortMode === "oldest" ? "oldest" : "newest";
+  let siteKeyword = session.siteKeyword;
+  let siteUrl = session.siteUrl;
 
   const normalized = normalizeItems(currentItems);
   if (normalized.some((it, i) => it !== currentItems[i])) {
@@ -298,24 +222,62 @@ export async function setupListView() {
     storageSet(currentItems);
   }
 
+  function saveSiteFilter() {
+    session = { ...session, siteKeyword, siteUrl };
+    sessionSet(session);
+  }
+
+  function updateSiteTrigger() {
+    const favicon = document.getElementById("site-favicon");
+    const label = document.getElementById("site-select-label");
+    favicon.hidden = !siteUrl;
+    if (siteUrl) {
+      favicon.src = `https://www.google.com/s2/favicons?domain=${siteUrl}`;
+      label.textContent = siteUrl;
+    } else {
+      favicon.removeAttribute("src");
+      label.textContent = "すべてのサイト";
+    }
+  }
+
   function renderSiteOptions() {
-    const select = document.getElementById("site-select");
+    const menu = document.getElementById("site-select-menu");
     const sites = [
       ...new Set(currentItems.map((it) => it.rootUrl).filter(Boolean)),
     ].sort((a, b) => a.localeCompare(b, "ja"));
-    select.innerHTML = "";
-    const all = document.createElement("option");
-    all.value = "";
-    all.textContent = "すべてのサイト";
-    select.appendChild(all);
-    sites.forEach((site) => {
-      const option = document.createElement("option");
-      option.value = site;
-      option.textContent = site;
-      select.appendChild(option);
-    });
-    select.value = sites.includes(siteUrl) ? siteUrl : "";
-    siteUrl = select.value;
+
+    if (siteUrl && !sites.includes(siteUrl)) {
+      siteUrl = "";
+      saveSiteFilter();
+    }
+
+    menu.innerHTML = "";
+    [{ value: "", label: "すべてのサイト" }]
+      .concat(sites.map((site) => ({ value: site, label: site })))
+      .forEach(({ value, label }) => {
+        const option = document.createElement("li");
+        option.className = "site-option";
+        option.setAttribute("role", "option");
+        option.dataset.value = value;
+        option.setAttribute("aria-selected", String(value === siteUrl));
+
+        const icon = document.createElement(value ? "img" : "span");
+        icon.className = "site-option-favicon";
+        if (value) {
+          icon.src = `https://www.google.com/s2/favicons?domain=${value}`;
+          icon.alt = "";
+        }
+        option.appendChild(icon);
+
+        const text = document.createElement("span");
+        text.className = "site-option-label";
+        text.textContent = label;
+        option.appendChild(text);
+
+        menu.appendChild(option);
+      });
+
+    updateSiteTrigger();
   }
 
   const handlers = {
@@ -343,11 +305,6 @@ export async function setupListView() {
       renderSiteOptions();
       render();
     },
-    onReorder: (fromUrl, toUrl) => {
-      currentItems = moveItem(currentItems, fromUrl, toUrl);
-      storageSet(currentItems);
-      render();
-    },
   };
 
   function render() {
@@ -357,7 +314,6 @@ export async function setupListView() {
       handlers,
       favoritesOnly,
       session,
-      sortMode,
       siteKeyword,
       siteUrl,
     );
@@ -374,24 +330,60 @@ export async function setupListView() {
     render();
   }
 
-  document.getElementById("search").addEventListener("input", render);
-  document.getElementById("site-search").addEventListener("input", (e) => {
-    siteKeyword = e.target.value;
-    render();
-  });
-  const siteSelect = document.getElementById("site-select");
-  siteSelect.addEventListener("change", () => {
-    siteUrl = siteSelect.value;
-    render();
-  });
-  const sortSelect = document.getElementById("sort-select");
-  sortSelect.value = sortMode;
-  sortSelect.addEventListener("change", () => {
-    sortMode = sortSelect.value;
+  function updateSortButtons() {
+    document
+      .getElementById("sort-newest")
+      .classList.toggle("active", sortMode === "newest");
+    document
+      .getElementById("sort-oldest")
+      .classList.toggle("active", sortMode === "oldest");
+  }
+
+  function setSort(mode) {
+    sortMode = mode;
     settings = { ...settings, sortMode };
     settingsSet(settings);
+    updateSortButtons();
+    render();
+  }
+
+  document.getElementById("search").addEventListener("input", render);
+  document.getElementById("site-search").value = siteKeyword;
+  document.getElementById("site-search").addEventListener("input", (e) => {
+    siteKeyword = e.target.value;
+    saveSiteFilter();
     render();
   });
+  const siteTrigger = document.getElementById("site-select-trigger");
+  const siteMenu = document.getElementById("site-select-menu");
+
+  function setMenuOpen(open) {
+    siteMenu.hidden = !open;
+    siteTrigger.setAttribute("aria-expanded", String(open));
+  }
+
+  siteTrigger.addEventListener("click", () => setMenuOpen(siteMenu.hidden));
+  siteMenu.addEventListener("click", (e) => {
+    const option = e.target.closest(".site-option");
+    if (!option) return;
+    siteUrl = option.dataset.value;
+    saveSiteFilter();
+    renderSiteOptions();
+    setMenuOpen(false);
+    render();
+  });
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".site-select-wrap")) setMenuOpen(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setMenuOpen(false);
+  });
+  document
+    .getElementById("sort-newest")
+    .addEventListener("click", () => setSort("newest"));
+  document
+    .getElementById("sort-oldest")
+    .addEventListener("click", () => setSort("oldest"));
   document.getElementById("view-all-btn").addEventListener("click", () => {
     setView(false);
   });
@@ -402,6 +394,7 @@ export async function setupListView() {
     .getElementById("menu-btn")
     .addEventListener("click", () => chrome.runtime.openOptionsPage());
 
+  updateSortButtons();
   renderSiteOptions();
   render();
 
