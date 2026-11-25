@@ -69,6 +69,54 @@ describe("filterItems", () => {
     expect(filterItems(favored, "", true)).toEqual([favored[0]]);
     expect(filterItems(favored, "banana", true)).toEqual([]);
   });
+
+  describe("サイト条件", () => {
+    const sites = [
+      { url: "https://a.com/1", rootUrl: "https://a.com", title: "apple" },
+      { url: "https://a.com/2", rootUrl: "https://a.com", title: "banana" },
+      {
+        url: "https://b.com/1",
+        rootUrl: "https://b.com",
+        title: "apple",
+        favorite: true,
+      },
+      { url: "chrome://extensions", rootUrl: "", title: "settings" },
+    ];
+
+    it("siteKeyword は rootUrl の部分一致で絞り込む", () => {
+      expect(filterItems(sites, "", false, "a.com").map((it) => it.url)).toEqual(
+        ["https://a.com/1", "https://a.com/2"],
+      );
+    });
+
+    it("siteUrl は rootUrl の完全一致で絞り込む", () => {
+      expect(
+        filterItems(sites, "", false, "", "https://b.com").map((it) => it.url),
+      ).toEqual(["https://b.com/1"]);
+    });
+
+    it("siteUrl は部分一致では一致しない", () => {
+      expect(filterItems(sites, "", false, "", "a.com")).toEqual([]);
+    });
+
+    it("タイトル検索・お気に入りとは AND で絞り込む", () => {
+      expect(
+        filterItems(sites, "apple", false, "", "https://a.com").map(
+          (it) => it.url,
+        ),
+      ).toEqual(["https://a.com/1"]);
+      expect(
+        filterItems(sites, "", true, "", "https://a.com"),
+      ).toEqual([]);
+    });
+
+    it("rootUrl が無い項目はサイト条件で除外され、条件なしでは含まれる", () => {
+      const missing = [{ url: "chrome://extensions", title: "x" }];
+      expect(filterItems(missing, "", false, "a.com")).toEqual([]);
+      expect(filterItems(missing, "", false, "", "https://a.com")).toEqual([]);
+      expect(filterItems(missing, "")).toEqual(missing);
+    });
+  });
 });
 
 describe("addItem", () => {

@@ -41,9 +41,20 @@ export function parseHost(url) {
   return result ? result[1] : "";
 }
 
-export function filterItems(items, keyword, favoritesOnly = false) {
+export function filterItems(
+  items,
+  keyword,
+  favoritesOnly = false,
+  siteKeyword = "",
+  siteUrl = "",
+) {
+  const siteNeedle = siteKeyword.toLowerCase();
   return items.filter((it) => {
     if (favoritesOnly && !it.favorite) return false;
+    if (siteUrl && it.rootUrl !== siteUrl) return false;
+    if (siteNeedle && !(it.rootUrl || "").toLowerCase().includes(siteNeedle)) {
+      return false;
+    }
     if (!keyword) return true;
     return (it.title || "").toLowerCase().includes(keyword.toLowerCase());
   });
@@ -194,14 +205,21 @@ export function renderItems(
   favoritesOnly = false,
   session = DEFAULT_SESSION,
   sortMode = "newest",
+  siteKeyword = "",
+  siteUrl = "",
 ) {
   const list = document.getElementById("bookmark-list");
   list.innerHTML = "";
 
-  const canReorder = sortMode === "manual" && !keyword && !favoritesOnly;
+  const canReorder =
+    sortMode === "manual" &&
+    !keyword &&
+    !favoritesOnly &&
+    !siteKeyword &&
+    !siteUrl;
   const drag = { url: null, recently: false };
 
-  filterItems(items, keyword, favoritesOnly).forEach(
+  filterItems(items, keyword, favoritesOnly, siteKeyword, siteUrl).forEach(
     ({ url, hostName, title, favorite }) => {
       const li = document.createElement("li");
       li.className = "bookmark-item";
@@ -271,11 +289,33 @@ export async function setupListView() {
   ]);
   let favoritesOnly = false;
   let sortMode = settings.sortMode;
+  let siteKeyword = "";
+  let siteUrl = "";
 
   const normalized = normalizeItems(currentItems);
   if (normalized.some((it, i) => it !== currentItems[i])) {
     currentItems = normalized;
     storageSet(currentItems);
+  }
+
+  function renderSiteOptions() {
+    const select = document.getElementById("site-select");
+    const sites = [
+      ...new Set(currentItems.map((it) => it.rootUrl).filter(Boolean)),
+    ].sort((a, b) => a.localeCompare(b, "ja"));
+    select.innerHTML = "";
+    const all = document.createElement("option");
+    all.value = "";
+    all.textContent = "すべてのサイト";
+    select.appendChild(all);
+    sites.forEach((site) => {
+      const option = document.createElement("option");
+      option.value = site;
+      option.textContent = site;
+      select.appendChild(option);
+    });
+    select.value = sites.includes(siteUrl) ? siteUrl : "";
+    siteUrl = select.value;
   }
 
   const handlers = {
@@ -294,11 +334,13 @@ export async function setupListView() {
       currentItems = removeItem(currentItems, url);
       storageSet(currentItems);
       setBadgeText(currentItems);
+      renderSiteOptions();
       render();
     },
     onToggleFavorite: (url) => {
       currentItems = toggleFavorite(currentItems, url);
       storageSet(currentItems);
+      renderSiteOptions();
       render();
     },
     onReorder: (fromUrl, toUrl) => {
@@ -316,6 +358,8 @@ export async function setupListView() {
       favoritesOnly,
       session,
       sortMode,
+      siteKeyword,
+      siteUrl,
     );
   }
 
@@ -331,6 +375,15 @@ export async function setupListView() {
   }
 
   document.getElementById("search").addEventListener("input", render);
+  document.getElementById("site-search").addEventListener("input", (e) => {
+    siteKeyword = e.target.value;
+    render();
+  });
+  const siteSelect = document.getElementById("site-select");
+  siteSelect.addEventListener("change", () => {
+    siteUrl = siteSelect.value;
+    render();
+  });
   const sortSelect = document.getElementById("sort-select");
   sortSelect.value = sortMode;
   sortSelect.addEventListener("change", () => {
@@ -349,6 +402,7 @@ export async function setupListView() {
     .getElementById("menu-btn")
     .addEventListener("click", () => chrome.runtime.openOptionsPage());
 
+  renderSiteOptions();
   render();
 
   return {
@@ -356,6 +410,7 @@ export async function setupListView() {
       currentItems = addItem(currentItems, item);
       storageSet(currentItems);
       setBadgeText(currentItems);
+      renderSiteOptions();
       render();
     },
   };

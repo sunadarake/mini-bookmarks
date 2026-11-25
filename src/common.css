@@ -61,6 +61,23 @@ body {
     font-size: 14px;
 }
 
+.site-filter {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.site-filter .search-input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    margin: 0;
+}
+
+.site-select {
+    max-width: 45%;
+}
+
 .bookmark-list {
     list-style: none;
 }
