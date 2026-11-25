@@ -45,7 +45,7 @@ cd mini-bookmarks
 | 項目 | 内容 |
 |:-|:-|
 | 保存先 | `chrome.storage.local` のキー `MiniBookMark_Items` |
-| 保存する値 | `url`、`hostName`、`title`、`createdAt`（お気に入りは `favorite`） |
+| 保存する値 | `url`、`hostName`、`rootUrl`、`title`、`createdAt`（お気に入りは `favorite`） |
 | 既読・直前の記事 | `chrome.storage.session` のキー `MiniBookMark_Session`（ブラウザ終了で消える） |
 | 設定 | `chrome.storage.local` のキー `MiniBookMark_Settings`（削除前確認の既定は OFF、並び順の既定は新しい順） |
 | 重複した URL | 古い項目を消して先頭に追加する |

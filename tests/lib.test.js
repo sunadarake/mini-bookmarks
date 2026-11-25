@@ -80,13 +80,14 @@ describe("addItem", () => {
     vi.restoreAllMocks();
   });
 
-  it("新しい項目を先頭に追加し hostName と createdAt を付ける", () => {
+  it("新しい項目を先頭に追加し hostName・rootUrl・createdAt を付ける", () => {
     const items = [{ url: "https://a.com/1", hostName: "https://a.com" }];
     const result = addItem(items, { url: "https://b.com/2", title: "B" });
     expect(result).toEqual([
       {
         url: "https://b.com/2",
         hostName: "https://b.com",
+        rootUrl: "https://b.com",
         title: "B",
         createdAt: 1000,
       },
@@ -104,6 +105,7 @@ describe("addItem", () => {
       {
         url: "https://a.com/1",
         hostName: "https://a.com",
+        rootUrl: "https://a.com",
         title: "A2",
         createdAt: 1000,
       },
@@ -119,21 +121,39 @@ describe("addItem", () => {
 });
 
 describe("normalizeItems", () => {
-  it("createdAt が無い項目だけ現在時刻で補完する", () => {
+  it("createdAt と rootUrl が無い項目を補完する", () => {
     const items = [
-      { url: "a", createdAt: 500 },
-      { url: "b" },
+      { url: "https://a.com/1", createdAt: 500, rootUrl: "https://a.com" },
+      { url: "https://b.com/2" },
     ];
     expect(normalizeItems(items, 1000)).toEqual([
-      { url: "a", createdAt: 500 },
-      { url: "b", createdAt: 1000 },
+      { url: "https://a.com/1", createdAt: 500, rootUrl: "https://a.com" },
+      { url: "https://b.com/2", createdAt: 1000, rootUrl: "https://b.com" },
     ]);
   });
 
-  it("全件に createdAt があれば同じ内容を返し、元配列は変更しない", () => {
-    const items = [{ url: "a", createdAt: 500 }];
-    expect(normalizeItems(items, 1000)).toEqual(items);
-    expect(items[0]).toEqual({ url: "a", createdAt: 500 });
+  it("createdAt があっても rootUrl が無ければ補完する", () => {
+    const items = [{ url: "https://a.com/1", createdAt: 500 }];
+    expect(normalizeItems(items, 1000)).toEqual([
+      { url: "https://a.com/1", createdAt: 500, rootUrl: "https://a.com" },
+    ]);
+  });
+
+  it("補完が不要な項目は同じオブジェクトを返し、元配列は変更しない", () => {
+    const item = {
+      url: "https://a.com/",
+      createdAt: 500,
+      rootUrl: "https://a.com",
+    };
+    const items = [item];
+    expect(normalizeItems(items, 1000)[0]).toBe(item);
+    expect(items[0]).toEqual(item);
+  });
+
+  it("http(s) 以外は rootUrl を空文字で補完する", () => {
+    expect(normalizeItems([{ url: "chrome://extensions" }], 1000)).toEqual([
+      { url: "chrome://extensions", createdAt: 1000, rootUrl: "" },
+    ]);
   });
 });
 
@@ -481,6 +501,13 @@ describe("exportItems", () => {
     const items = [{ url: "https://a.com/", createdAt: 500 }];
     expect(exportItems(items).items[0].createdAt).toBe(500);
   });
+
+  it("rootUrl を保持する", () => {
+    const items = [
+      { url: "https://a.com/", hostName: "https://a.com", rootUrl: "https://a.com" },
+    ];
+    expect(exportItems(items).items[0].rootUrl).toBe("https://a.com");
+  });
 });
 
 describe("mergeItems", () => {
@@ -521,6 +548,7 @@ describe("mergeItems", () => {
       {
         url: "https://a.com/",
         hostName: "https://a.com",
+        rootUrl: "https://a.com",
         title: "new",
         createdAt: 2000,
       },
@@ -545,5 +573,17 @@ describe("mergeItems", () => {
     const result = mergeItems([], imported);
     expect(result[0].createdAt).toBe(2000);
     expect(result[1].createdAt).toBe(500);
+  });
+
+  it("rootUrl が無いインポート項目に hostName か URL から補完する", () => {
+    const imported = [
+      { url: "https://a.com/" },
+      { url: "https://b.com/", hostName: "https://b.com" },
+      { url: "https://c.com/", rootUrl: "https://c.com" },
+    ];
+    const result = mergeItems([], imported);
+    expect(result[0].rootUrl).toBe("https://a.com");
+    expect(result[1].rootUrl).toBe("https://b.com");
+    expect(result[2].rootUrl).toBe("https://c.com");
   });
 });

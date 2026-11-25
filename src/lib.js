@@ -52,14 +52,22 @@ export function filterItems(items, keyword, favoritesOnly = false) {
 // 同じ URL は古い項目を消して先頭に入れ直す
 export function addItem(items, { url, title }) {
   const filtered = items.filter((it) => it.url !== url);
+  const hostName = parseHost(url);
   return [
-    { url, hostName: parseHost(url), title, createdAt: Date.now() },
+    { url, hostName, rootUrl: hostName, title, createdAt: Date.now() },
     ...filtered,
   ];
 }
 
 export function normalizeItems(items, now = Date.now()) {
-  return items.map((it) => (it.createdAt ? it : { ...it, createdAt: now }));
+  return items.map((it) => {
+    if (it.createdAt && it.rootUrl !== undefined) return it;
+    return {
+      ...it,
+      createdAt: it.createdAt || now,
+      rootUrl: it.rootUrl ?? parseHost(it.url),
+    };
+  });
 }
 
 export function sortItems(items, mode) {
@@ -130,6 +138,7 @@ export function mergeItems(existing, imported) {
   const normalized = imported.map((item) => {
     const copy = omitRead(item);
     copy.hostName = copy.hostName || parseHost(copy.url);
+    copy.rootUrl = copy.rootUrl || copy.hostName;
     copy.createdAt = copy.createdAt || Date.now();
     return copy;
   });
