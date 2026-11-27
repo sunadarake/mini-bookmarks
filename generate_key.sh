@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# manifest.json に key を追加して、拡張機能の ID を固定する
+# manifest.json の key を削除して、拡張機能の ID を入れ直す
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -12,8 +12,9 @@ for cmd in openssl jq; do
 done
 
 if jq -e 'has("key")' manifest.json >/dev/null; then
-    echo "manifest.json には key が既にあります。何もしません"
-    exit 0
+    echo "manifest.json の既存の key を削除します"
+else
+    echo "manifest.json に key はありません。追加します"
 fi
 
 if [ -f key.pem ]; then
@@ -31,11 +32,11 @@ extension_id=$(printf '%s' "$public_der" | base64 -d | openssl dgst -sha256 -bin
 
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
-# 他のキーの並びを変えないよう、name の直後に key を入れる
+# 既存の key を消し、他のキーの並びを変えないよう name の直後に key を入れる
 jq --indent 2 --arg key "$public_der" \
-    'to_entries | map(., if .key == "name" then {key: "key", value: $key} else empty end) | from_entries' \
+    'del(.key) | to_entries | map(., if .key == "name" then {key: "key", value: $key} else empty end) | from_entries' \
     manifest.json >"$tmp"
 cat "$tmp" >manifest.json
 
-echo "manifest.json に key を追加しました"
+echo "manifest.json の key を更新しました"
 echo "拡張機能 ID: $extension_id"

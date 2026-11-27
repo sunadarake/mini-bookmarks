@@ -1,17 +1,21 @@
 #!/bin/bash
-# build.sh で zip を作り、概要とインストール方法を書いたリリースノートを組み立てる。
-# それを本文にして GitHub CLI で公開リリースを作成し、以前のリリースとタグを削除する。
+# 一時ディレクトリに配布用 zip を作り、GitHub CLI で公開リリースする。
+# 成功後に、新バージョン以外のリリースとタグを削除する。
 set -euo pipefail
 
 # どこから実行しても同じ結果になるよう、リポジトリのルートに移動する
 cd "$(dirname "$0")"
 
-command -v gh >/dev/null || { echo "gh (GitHub CLI) が必要です" >&2; exit 1; }
+for cmd in gh zip git; do
+  command -v "$cmd" >/dev/null || { echo "${cmd} コマンドが必要です" >&2; exit 1; }
+done
 
+EXT_NAME=$(sed -n 's/.*"name": "\(.*\)".*/\1/p' package.json | head -1)
+[ -n "$EXT_NAME" ] || { echo "package.json から拡張機能名を取得できません" >&2; exit 1; }
 VERSION=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' manifest.json | head -1)
 [ -n "$VERSION" ] || { echo "manifest.json からバージョンを取得できません" >&2; exit 1; }
 TAG="v${VERSION}"
-ZIP="dist/mini-bookmarks-v${VERSION}.zip"
+ZIP_NAME="${EXT_NAME}-${TAG}.zip"
 
 if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
   echo "タグ ${TAG} は既にあります。manifest.json のバージョンを上げてください" >&2
@@ -24,12 +28,23 @@ fi
 # GitHub は remote にないコミットを --target に指定できない（HTTP 422）
 [ -n "$(git branch -r --contains HEAD)" ] || { echo "HEAD が remote に push されていません。先に push してください" >&2; exit 1; }
 
-# 削除は公開リリースの作成が成功してから行うため、対象は先に決めておく。
-# 新タグ以外の最新リリース1件と、新タグ以外のドラフトリリースを消す。
-PREV_TAG=$(gh release list --limit 100 --json tagName --jq "[.[] | select(.tagName != \"${TAG}\")][0].tagName // empty")
-DRAFT_TAGS=$(gh release list --limit 100 --json tagName,isDraft --jq ".[] | select(.isDraft and .tagName != \"${TAG}\") | .tagName")
+TMP_DIR=$(mktemp -d)
+cleanup() {
+  rm -rf "$TMP_DIR"
+  echo "一時ディレクトリを削除しました: ${TMP_DIR}"
+}
+trap cleanup EXIT
 
-./build.sh
+ZIP_PATH="${TMP_DIR}/${ZIP_NAME}"
+
+echo "リリース ${TAG} を準備しています"
+echo "  一時ディレクトリ: ${TMP_DIR}"
+echo
+
+echo "1/3: 一時ディレクトリに zip を作成しています"
+zip -rq "$ZIP_PATH" manifest.json assets/ src/ -x "*.DS_Store"
+echo "  ${ZIP_NAME} を作成しました"
+echo
 
 NOTES=$(cat <<NOTES
 # ${TAG}
@@ -44,11 +59,15 @@ NOTES=$(cat <<NOTES
 NOTES
 )
 
-# 公開リリースとして作成する。タグは HEAD のコミットへ作られる
-gh release create "$TAG" "$ZIP" \
+echo "2/3: GitHub に公開リリースを作成しています"
+gh release create "$TAG" "$ZIP_PATH" \
   --title "$TAG" \
   --notes "$NOTES" \
   --target "$(git rev-parse HEAD)"
+echo "  リリース ${TAG} を作成しました"
+echo
+
+echo "3/3: 以前のリリースとタグを削除しています"
 
 delete_release() {
   local tag=$1
@@ -60,17 +79,19 @@ delete_release() {
   fi
 }
 
-if [ -n "$PREV_TAG" ]; then
-  delete_release "$PREV_TAG"
-  echo "以前のリリース ${PREV_TAG} とタグを削除しました"
-fi
+PREVIOUS_TAGS=$(gh api --paginate "repos/{owner}/{repo}/releases" --jq '.[].tag_name')
+DELETED=0
+while IFS= read -r PREVIOUS_TAG; do
+  [ -n "$PREVIOUS_TAG" ] || continue
+  [ "$PREVIOUS_TAG" = "$TAG" ] && continue
+  delete_release "$PREVIOUS_TAG"
+  echo "  ${PREVIOUS_TAG} を削除しました"
+  DELETED=$((DELETED + 1))
+done <<< "$PREVIOUS_TAGS"
 
-while IFS= read -r DRAFT_TAG; do
-  [ -n "$DRAFT_TAG" ] || continue
-  [ "$DRAFT_TAG" = "$PREV_TAG" ] && continue
-  delete_release "$DRAFT_TAG"
-  echo "ドラフトリリース ${DRAFT_TAG} とタグを削除しました"
-done <<< "$DRAFT_TAGS"
+if [ "$DELETED" -eq 0 ]; then
+  echo "  削除する以前のリリースはありません"
+fi
 
 echo
 echo "リリース ${TAG} を公開しました"

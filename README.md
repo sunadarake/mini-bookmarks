@@ -24,8 +24,14 @@ pnpm install
 # Chrome で chrome://extensions を開き、デベロッパーモードを有効にする
 # 「パッケージ化されていない拡張機能を読み込む」でこのディレクトリを選ぶ
 
-# 配布用 zip を作る場合（dist/ に出力される）
+# 配布用 zip を作る場合（build/ に出力される）
 ./build.sh
+
+# GitHub に公開リリースする場合（gh と push 済みのコミットが必要）
+./release.sh
+
+# manifest.json に拡張機能 ID を固定する key を設定する場合
+./generate_key.sh
 ```
 
 ## 使い方
@@ -49,12 +55,12 @@ pnpm install
 | 保存先 | `chrome.storage.local` のキー `MiniBookMark_Items` |
 | 保存する値 | `url`、`hostName`、`rootUrl`、`title`、`createdAt` |
 | 既読・直前の記事・サイト絞り込み | `chrome.storage.session` のキー `MiniBookMark_Session`（ブラウザ終了で消える） |
-| 設定 | `chrome.storage.local` のキー `MiniBookMark_Settings`（削除前確認の既定は OFF、並び順の既定は新しい順） |
+| 設定 | `chrome.storage.local` のキー `MiniBookMark_Settings`（削除前確認の既定は OFF、並び順の既定は新しい順、表示件数の既定は 30） |
 | 重複した URL | 古い項目を消して先頭に追加する |
 | 検索 | タイトルの部分一致（大文字小文字を区別しない） |
 | サイト絞り込み | ドロップダウンで `rootUrl` の完全一致。ドロップダウン内の検索窓で候補を部分一致で絞り込み。各候補に favicon を表示。タイトル検索とは AND。状態はブラウザ終了まで維持 |
 | 並び順 | 「新しい順」「古い順」の toggle。`createdAt` 基準 |
-| 表示件数 | 最初に 100 件を表示し、末尾付近までスクロールすると 100 件ずつ追加表示する。検索・並び替え・サイト絞り込みを変えると最初の 100 件に戻る |
+| 表示件数 | 最初に 30 件を表示し、末尾付近までスクロールすると 30 件ずつ追加表示する。検索・並び替え・サイト絞り込みを変えると最初の 30 件に戻る |
 | 空状態 | 0 件のときは案内を表示する（保存 0 件と絞り込み 0 件で文言を分ける） |
 | バッジ | 保存件数を表示する |
 
