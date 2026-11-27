@@ -1,6 +1,9 @@
 import { setupListView } from "./lib.js";
+import { ICON_EXTERNAL_LINK } from "./icons.js";
 
-document.getElementById("open-tab-btn").addEventListener("click", () => {
+const openTabBtn = document.getElementById("open-tab-btn");
+openTabBtn.innerHTML = ICON_EXTERNAL_LINK;
+openTabBtn.addEventListener("click", () => {
   chrome.tabs.create({ url: chrome.runtime.getURL("src/tab.html") });
 });
 

@@ -24,6 +24,7 @@
 - `build.sh` / `release.sh` 配布用 zip を `build/` に作成するビルドと、一時ディレクトリの zip を GitHub に公開するリリース
 - `generate_key.sh` `key.pem` から `manifest.json` の `key` を設定し、拡張機能 ID を固定する
 - `src/lib.js` 共通処理（保存・バッジ・描画、popup とフルタブ画面で共通の一覧の初期化 `setupListView`、配列を変換する純粋関数）。`chrome.*` に触れない関数はここに置いてテストする
+- `src/icons.js` Lucide のアイコンをインライン SVG で定義し、popup / フルタブ画面で共有する
 - `src/background.js` サービスワーカー。起動・インストール時にバッジの件数を更新する
 - `src/popup.html` / `src/popup.js` ポップアップ。現在のタブの追加、検索、既読化、削除、フルタブ画面とオプションを開く
 - `src/tab.html` / `src/tab.js` フルタブ画面。一覧、検索、既読化、削除（追加はできない）とオプションを開く導線
@@ -44,8 +45,9 @@
 - 一覧は最初に設定の `pageSize`（既定 `PAGE_SIZE` = 30）件だけ描画し、末尾の `#list-sentinel` が画面付近に入るたびに `pageSize` 件ずつ追加描画する。検索・並び替え・サイト絞り込みを変えたときは `pageSize` 件に戻す。`Total` は全件数を表示する
 - 一覧が 0 件のときは空状態の案内を表示する（保存 0 件と絞り込み 0 件で文言を分ける）
 - デザインはライトテーマのみ。色・角丸・影は `src/common.css` の CSS 変数で管理し、ポップアップ・フルタブ・オプションの 3 画面で共通化する。オプション画面は中央寄せのカードレイアウトで、ドロップゾーンはクリックとキーボード（Enter / Space）で操作できる
+- アイコンは Lucide のインライン SVG（`src/icons.js`）を使う。外部 CDN は CSP で読み込めないため使わない
 - 項目の追加・削除のたびにバッジ（件数）を更新する
-- `popup.js` / `tab.js` / `background.js` / `options.js` は `type="module"` で `lib.js` を import する。トップレベル await は ES2022 のため使わない
+- `popup.js` / `tab.js` / `background.js` / `options.js` は `type="module"` で `lib.js` を import する。`popup.js` は `icons.js` も import する。トップレベル await は ES2022 のため使わない
 - エクスポート JSON は `{ version, exportedAt, items }`。`read` は含めず、その他の状態は保持する。インポートは項目を先頭に追加し、同一 URL はインポート側を優先する（既読は取り込まない）
 
 ## 作業の進め方

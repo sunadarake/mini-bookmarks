@@ -209,9 +209,10 @@ a {
 }
 
 .site-select-caret {
+    display: inline-flex;
+    align-items: center;
     flex-shrink: 0;
     color: var(--text-subtle);
-    font-size: 12px;
 }
 
 .site-favicon,
@@ -392,10 +393,12 @@ a {
 }
 
 .read-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 20px;
     flex-shrink: 0;
-    font-size: 13px;
-    text-align: center;
+    color: var(--success);
 }
 
 .list-empty {

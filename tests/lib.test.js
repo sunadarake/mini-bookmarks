@@ -420,7 +420,7 @@ describe("renderItems", () => {
       openedUrls: ["https://a.com/"],
       lastOpenedUrl: "",
     });
-    expect(document.querySelector(".read-mark").textContent).toBe("✅");
+    expect(document.querySelector(".read-mark svg")).not.toBeNull();
     expect(document.querySelector(".bookmark-link").textContent).toContain(
       "https://a.com/",
     );
@@ -437,9 +437,9 @@ describe("renderItems", () => {
     });
     const rows = document.querySelectorAll(".bookmark-item");
     expect(rows[0].classList.contains("last-opened")).toBe(false);
-    expect(rows[0].querySelector(".read-mark").textContent).toBe("✅");
+    expect(rows[0].querySelector(".read-mark svg")).not.toBeNull();
     expect(rows[1].classList.contains("last-opened")).toBe(true);
-    expect(rows[1].querySelector(".read-mark").textContent).toBe("✅");
+    expect(rows[1].querySelector(".read-mark svg")).not.toBeNull();
   });
 
   it("リンクと削除ボタンでコールバックを呼ぶ", () => {

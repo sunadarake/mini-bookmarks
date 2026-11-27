@@ -1,3 +1,10 @@
+import {
+  ICON_CHECK,
+  ICON_CHEVRON_DOWN,
+  ICON_MENU,
+  ICON_X,
+} from "./icons.js";
+
 export const STORAGE_KEY = "MiniBookMark_Items";
 export const SESSION_KEY = "MiniBookMark_Session";
 export const SETTINGS_KEY = "MiniBookMark_Settings";
@@ -157,7 +164,11 @@ export function renderItems(
 
       const readMark = document.createElement("span");
       readMark.className = "read-mark";
-      readMark.textContent = session.openedUrls.includes(url) ? "✅" : "";
+      if (session.openedUrls.includes(url)) {
+        readMark.innerHTML = ICON_CHECK;
+        readMark.setAttribute("role", "img");
+        readMark.setAttribute("aria-label", "既読");
+      }
 
       const a = document.createElement("a");
       a.href = url;
@@ -176,7 +187,8 @@ export function renderItems(
 
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "delete-btn";
-      deleteBtn.textContent = "✕";
+      deleteBtn.innerHTML = ICON_X;
+      deleteBtn.setAttribute("aria-label", "削除");
       deleteBtn.addEventListener("click", () => onDelete(url));
 
       li.appendChild(readMark);
@@ -226,7 +238,7 @@ function renderListView() {
         >
           <img id="site-favicon" class="site-favicon" alt="" hidden />
           <span id="site-select-label" class="site-select-label">すべてのサイト</span>
-          <span class="site-select-caret" aria-hidden="true">▾</span>
+          <span class="site-select-caret" aria-hidden="true">${ICON_CHEVRON_DOWN}</span>
         </button>
         <div id="site-select-menu" class="site-select-menu" hidden>
           <input
@@ -251,6 +263,7 @@ function renderListView() {
 
 // popup と フルタブ画面で共通の一覧の初期化。追加は popup だけが使う
 export async function setupListView() {
+  document.getElementById("menu-btn").innerHTML = ICON_MENU;
   renderListView();
   let [currentItems, session, settings] = await Promise.all([
     storageGet(),
