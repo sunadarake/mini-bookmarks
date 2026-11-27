@@ -15,7 +15,7 @@ EXT_NAME=$(sed -n 's/.*"name": "\(.*\)".*/\1/p' package.json | head -1)
 VERSION=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' manifest.json | head -1)
 [ -n "$VERSION" ] || { echo "manifest.json からバージョンを取得できません" >&2; exit 1; }
 TAG="v${VERSION}"
-ZIP_NAME="${EXT_NAME}-${TAG}.zip"
+ZIP_NAME="chrome-${EXT_NAME}-${TAG}.zip"
 
 if git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null; then
   echo "タグ ${TAG} は既にあります。manifest.json のバージョンを上げてください" >&2
