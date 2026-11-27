@@ -44,4 +44,6 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git c
 - push はしない
 
 ## 報告
+報告・質問は日本語で書く。
+
 完了後、AGENTS.mdの変更点（なければ「変更なし」）、コミットメッセージ、対象ファイルを簡潔に報告する

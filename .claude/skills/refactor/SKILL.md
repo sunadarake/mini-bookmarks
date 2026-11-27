@@ -40,6 +40,8 @@ allowed-tools: Bash(git diff:*), Bash(git status:*), Bash(git checkout:*), Read,
   - 安全か迷うもの
 
 ## 報告（箇条書き、全体で20行以内、🟢 → 🟡 の順）
+報告・質問は日本語で書く。
+
 - `🟢 ファイル:行 - 実行した内容`
 - `🟡 N. ファイル:行 - 案（理由）`
 

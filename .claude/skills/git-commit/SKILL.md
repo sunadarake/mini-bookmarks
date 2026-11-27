@@ -33,4 +33,6 @@ allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git add:*), Bash(git c
 - push はしない
 
 ## 報告
+報告・質問は日本語で書く。
+
 コミット後、コミットメッセージと対象ファイルを簡潔に報告する
